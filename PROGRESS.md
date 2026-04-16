@@ -2,10 +2,11 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-16
-**Current phase:** Phase 0 — Project foundation (in progress)
+**Last updated:** 2026-04-16 (end of session 2)
+**Current phase:** Phase 0 — Project foundation (6 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
+**Head of `main`:** `e08f17c` — feat(data): port all static data from prototype
 
 ---
 
@@ -14,88 +15,23 @@ This file is the live log of what has been done, what is next, and how to resume
 When you open a new session:
 
 1. `cd /Users/praveenkumarv/bloombrewvs`
-2. `nvm use` (picks up `.nvmrc` -> Node 22.17.0; your system default stays on Node 18)
+2. `nvm use` (picks up `.nvmrc` → Node 22.17.0; system default stays on Node 18)
 3. Read this file, then `BUILD_PLAN.md` for the full plan.
-4. Continue from the **Next steps** section below.
-5. Ask Claude to use **Sonnet** for coding (we are currently on Opus — switch via `/model` -> Sonnet 4.6). Escalate back to Opus if a hard bug or complex refactor comes up.
+4. Jump to the **Next up** section below.
+5. Model: start on **Sonnet 4.6** for coding (the bulk of task #7 is mechanical porting of pure functions). Escalate to **Opus 4.6** only if you hit a hard algorithmic question or a tricky refactor. Haiku is not in the loop for code.
 
 ---
 
-## Session 1 summary (2026-04-16)
-
-### What got decided
-
-| Decision | Choice | Why |
-|---|---|---|
-| Frontend design | Locked — do not change `reference/index.html` visuals | User directive: build the working model behind the current design first; improvements come later |
-| Backend | Supabase (free tier) | User choice |
-| Directory layout | **Monorepo**: Vite web app in `web/`, leaves room for `mobile/` and `supabase/` later | Mobile comes in Phase 7, cleaner split |
-| Node version | **22.17.0 pinned per-project via `.nvmrc`**; system default stays Node 18 | User wants to keep node 18 as system default; `nvm use` picks up the pin |
-| zsh auto-switch hook | **Skipped for now** — user runs `nvm use` manually | User preference |
-| Git | `git init` done locally, one initial commit | User wants local-only for now |
-| GitHub remote | **Skipped for now** — revisit later | User preference |
-| Scaffold | `npm create vite@latest web -- --template react-ts` -> Vite 8.0.8, React 19.2.4, TypeScript 6.0.2 | Matches latest stable as of 2026-04-16 |
-| Vercel deploy | Deferred to end of Phase 0 | No point deploying until we have parity with reference |
-
-### What is on disk now
-
-```
-bloombrewvs/
-  .git/                      initialized, one commit (see git log)
-  .gitignore                 project-wide (covers node_modules, .env, .venv, etc.)
-  .nvmrc                     pins this project to Node 22
-  .idea/                     PyCharm metadata (untouched)
-  .venv/                     pre-existing Python venv (untouched, unrelated)
-  BUILD_PLAN.md              the 9-phase plan (Phase 0 -> Phase 8)
-  MODELS.md                  model routing rules (Opus/Sonnet/Haiku)
-  PROGRESS.md                this file
-  README.md                  original prototype README
-  FEATURES.md                complete feature spec for the prototype
-  HOSTING.md                 original hosting notes
-  projectcontext.md          user's original instructions
-  reference/
-    index.html               the prototype (181KB, moved from root)
-  web/                       Vite + React 19 + TS 6 scaffold (default template only)
-    package.json
-    tsconfig*.json
-    vite.config.ts
-    eslint.config.js
-    index.html               Vite entry (NOT the prototype — the prototype is in reference/)
-    src/
-      App.tsx                default Vite App
-      main.tsx
-      index.css
-      App.css
-      assets/
-    public/
-    node_modules/            installed, gitignored
-```
-
-### What is committed vs uncommitted
-
-- **Committed** (one commit on `main`): `.gitignore`, `.nvmrc`, all .md files at root, `reference/index.html`
-- **Uncommitted / untracked**: the entire `web/` scaffold is on disk but **not yet committed** (user interrupted the commit). Next session should either commit it or review first.
-
-### What is already verified working
-
-- `npm install` in `web/` succeeded (172 packages, 0 vulnerabilities)
-- `npm run build` in `web/` succeeded (built in 377ms, output in `web/dist/`)
-- The Vite default page builds cleanly — we have not yet started porting any prototype UI
-
----
-
-## Next steps (pick up here next session)
-
-Tasks are tracked in the in-session task list, but in case that is lost, here are Phase 0 tasks in order:
+## Phase 0 task checklist
 
 - [x] #1 Move `index.html` to `reference/`
 - [x] #2 `git init` + initial commit
 - [x] #3 Scaffold Vite + React 19 + TS 6 in `web/`
-- [x] #3b Commit the Vite scaffold (done 2026-04-16 as part of re-init at `bloombrewvs`)
-- [x] #4 Create directory structure in `web/src/`: `pages/`, `components/`, `lib/`, `data/`, `styles/`, `types/` (empty dirs tracked via `.gitkeep`)
-- [x] #5 Define TypeScript data models in `web/src/types/`: `Method`/`MethodId`/`BrewingMethodCategory`/`MethodDifficulty`, `Recipe`/`RecipeStep`/`RecipesByMethod`, `Grinder`/`GrinderType`, `Bean`/`BeanSource`/`CuratedBean`, `JournalEntry`/`RatingAxes`/`RatingAxisKey`, `PrepStep`/`PrepChecklist`/`PrepChecklistsByMethod`, `UserSettings`/`Units`/`TempUnit`. Barrel in `types/index.ts`. `tsc --noEmit` clean.
-- [x] #6 Port static data from `reference/index.html` into `web/src/data/`: 26 recipes (all methods), 6 grinders, 12 glossary terms, 8 Indian roasters, 6 Bangalore cafes, 10 tips, 8 fun facts, 9 pre-brew checklists + default, 3 community feed seeds, score-axis config. Barrel in `data/index.ts`. tsc clean.
-- [ ] #7 Port pure logic to `web/src/lib/`: `grinderMath`, `flavorMatch`, `tweakEngine`, `recipeScaling` — add `vitest` unit tests
+- [x] #3b Commit the Vite scaffold
+- [x] #4 Create directory structure in `web/src/`: `pages/`, `components/`, `lib/`, `data/`, `styles/`, `types/` (empty dirs tracked via `.gitkeep`; `types/` and `data/` now have real files, `.gitkeep` stays in the still-empty ones)
+- [x] #5 Define TypeScript data models in `web/src/types/`
+- [x] #6 Port static data into `web/src/data/`
+- [ ] **#7 Port pure logic to `web/src/lib/` + unit tests** ← next up (see below)
 - [ ] #8 Build `web/src/lib/storage.ts` — typed localStorage wrapper with a schema version field (so the Supabase swap in Phase 3 is one file's worth of change)
 - [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`
 - [ ] #10 Port pages to `web/src/pages/`: Dashboard, MethodPicker, Setup, RecipeList, PreBrew, Brewing, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog. Install `react-router-dom` and wire routing.
@@ -108,11 +44,173 @@ Tasks are tracked in the in-session task list, but in case that is lost, here ar
 
 ---
 
+## Next up: Task #7 — port pure logic to `web/src/lib/`
+
+Four pure functions + vitest. All currently live inline inside React components in `reference/index.html`; extract them into typed, tested modules. Types already exist in `web/src/types/`; data already exists in `web/src/data/`.
+
+### 7a. Set up vitest
+
+```bash
+cd web
+npm i -D vitest @vitest/coverage-v8
+```
+
+Add scripts to `web/package.json`:
+
+```json
+"scripts": {
+  "test": "vitest",
+  "test:run": "vitest run",
+  "test:cov": "vitest run --coverage"
+}
+```
+
+No separate `vitest.config.ts` needed — Vitest reads `vite.config.ts`.
+
+Tests co-located: `web/src/lib/<module>.test.ts`.
+
+### 7b. The four modules
+
+**`lib/grinderMath.ts`**
+- Input: `Grinder`, `microns` (target grind size), `adjustmentClicks?` (from tweak engine, ±N)
+- Output: `{ clicks: number, supportsHalf: boolean, display: string }` — display like "23" or "23.5"
+- Rules:
+  - `clicks = microns * grinder.clicksPerMicron`
+  - Hand grinders with half-click detents: `supportsHalf = ["c40", "jx", "k6"].includes(grinder.id)` — round to nearest 0.5
+  - Others: round to nearest whole click
+  - Reference: `reference/index.html` line 1692 (`supportsHalf`), line 1711 (display formatting)
+- Tests: one per grinder id covering a typical micron value; edge cases for 0 and very-large microns.
+
+**`lib/recipeScaling.ts`**
+- Input: `Recipe`, `cups: number` (0.5–8, 0.5 increments)
+- Output: scaled `{ dose, water, temp, microns, milk? }` + scaled `RecipeStep[]` + `totalTime` (seconds)
+- Rules (all from `reference/index.html` lines 1641–1700):
+  - `dose`, `water`, `milk`, step `pour` values: linear × cups
+  - `temp`: unchanged
+  - Brew time: `Math.sqrt(cups)` × original — doubling volume ≠ doubling time
+  - Step `t` (offset): scale by `Math.sqrt(cups)` too, so the whole schedule stretches consistently
+  - Grind coarser for bigger batches: `adjMicrons = Math.round(recipe.microns * (1 + (cups - 1) * 0.05))` — 5% coarser per additional cup
+  - Step `desc` strings: prototype rewrites "Pour to 100g" → "Pour to 200g" when cups=2. See how it does the regex rewrite around line 1650ish; replicate or leave strings unchanged and render cups-aware sub-text in the UI.
+- Tests: identity at cups=1, 2× all masses at cups=2, time stretch by √2, micron bump.
+
+**`lib/flavorMatch.ts`**
+- Input: free-text flavor query, optional method filter
+- Output: ranked `{ recipe: Recipe, score: number, profile: RatingAxes, matchedKeywords: string[] }[]`
+- Rules (reference lines 1076–1236):
+  - `FLAVOR_KEYWORDS` maps words → axis deltas (positive/negative). Port this map as a const.
+  - Parse user text → build target profile across the 5 rating axes (baseline 5 + sum of deltas, clamped to 0–10)
+  - Each recipe has an implicit profile (prototype computes it by method — see line 1153 `byMethod`). Port that table.
+  - Score each recipe: `-Math.sqrt(sum of squared distances per axis) + ratingBoost` where `ratingBoost = recipe.rating * 0.3` (line 1198)
+  - Return top-N sorted descending by score; include matched keywords for the pills UI
+  - If no keywords parsed, return a clearly-flagged empty/low-confidence result
+- Tests: exact-match queries ("bright and fruity"), unknown-word queries, method filter narrows set, ordering is stable for ties.
+
+**`lib/tweakEngine.ts`**
+- Input: `JournalEntry` (has scores, recipe params, clicks, grinder)
+- Output: `{ diagnosis: string, suggestions: Array<{ axis: 'Grind'|'Temp'|'Time'|'Ratio'|'Bean', change: string, why: string }> }`
+- Rules: reference `generateTweaks` at line 3066 and follow-on Q&A helpers around 3283. Key heuristics (coffee-science rules of thumb):
+  - Bitter + low sweetness → over-extracted: coarser grind, lower temp, faster pour
+  - Sour + low sweetness → under-extracted: finer grind, raise temp, extend brew
+  - Thin body → stronger ratio, less agitation
+  - Muddy + bitter → coarser grind, rinse filter longer
+  - Short aftertaste → check bean freshness, improve water quality
+- Return deterministic, ordered suggestions; concrete numbers computed from the entry's actual dose/water/temp/clicks.
+- Tests: five-ish canonical scorecards → expected primary diagnosis; assert suggestion numbers match the computed values (no literal strings; interpolate from input).
+
+### 7c. Guardrails
+
+- `import type` from `../types` where needed (`verbatimModuleSyntax: true`).
+- No React imports — these are pure. If you find yourself reaching for `useMemo`, you're in the wrong file.
+- Aim for 100% branch coverage on `grinderMath` and `recipeScaling`; ~80% on the two rule-based engines is fine.
+- After each module: `npx tsc --noEmit -p tsconfig.app.json` and `npm run test:run` both clean.
+- Commit per-module (or one commit for all four if tests pass cleanly). Prefix messages `feat(lib): ...`.
+
+### 7d. Open algorithmic questions to watch for
+
+- **Flavor keyword parsing**: the prototype is a naive substring match. Fine for MVP; document the precision/recall tradeoff in a code comment so Phase 4's Claude-powered swap is unsurprising.
+- **Tweak suggestion magnitudes**: the prototype picks +/- values that "feel right" to a coffee enthusiast. If you want these exact, cross-reference with the prototype line-by-line; otherwise codify them as named constants at the top of `tweakEngine.ts` so they're tunable in one place.
+- **Step-description rewrites during scaling**: if you preserve the prototype's regex approach, note that it breaks for recipes that don't phrase things as "Pour to Xg" (most don't). Simpler: don't rewrite step descs, just show the scaled `dose/water/milk` in the prep card header and let the step descs reference "the target weight" generically. Check visual parity against the prototype either way before locking this in.
+
+---
+
+## What's on disk now (as of 2026-04-16 end of session 2)
+
+```
+bloombrewvs/
+  .git/                          4 commits on main
+  .gitignore                     node_modules, .env, dist, .venv, .vercel, .supabase, etc.
+  .nvmrc                         "22"
+  BUILD_PLAN.md                  9-phase plan (stable)
+  MODELS.md                      Opus/Sonnet/Haiku routing
+  PROGRESS.md                    this file
+  README.md                      original prototype README
+  FEATURES.md                    complete feature spec
+  HOSTING.md                     original hosting notes
+  projectcontext.md              user's original instructions
+  reference/
+    index.html                   prototype, 181KB, design-locked
+  web/
+    package.json                 Vite 8, React 19, TS 6
+    tsconfig.app.json            verbatimModuleSyntax + erasableSyntaxOnly
+    vite.config.ts, eslint.config.js, index.html, dist/ (gitignored)
+    node_modules/                gitignored
+    public/                      favicon + icons
+    src/
+      App.tsx, main.tsx, index.css, App.css, assets/  default Vite template still
+      types/
+        index.ts                 barrel
+        method.ts                METHOD_IDS, Method, MethodId, BrewingMethodCategory, MethodDifficulty
+        recipe.ts                Recipe, RecipeStep, RecipesByMethod
+        grinder.ts               Grinder, GrinderType
+        bean.ts                  Bean, BeanSource, CuratedBean
+        journal.ts               RATING_AXIS_KEYS, RatingAxes, RatingAxisKey, JournalEntry
+        prep.ts                  PrepStep, PrepChecklist, PrepChecklistsByMethod
+        settings.ts              UserSettings, Units, TempUnit
+      data/
+        index.ts                 barrel
+        methods.ts               9 Method[]
+        grinders.ts              6 Grinder[]
+        recipes.ts               26 recipes (RecipesByMethod)
+        glossary.ts              12 terms + GlossaryTerm type
+        indianBeans.ts           8 CuratedBean[] (renamed `source` → `availability`)
+        cafes.ts                 6 Cafe[] + Cafe type
+        content.ts               SCORE_AXES, TIPS, FUN_FACTS + ScoreAxisConfig type
+        preBrew.ts               PRE_BREW (all 9 methods) + DEFAULT_PRE_BREW
+        feed.ts                  3 CommunityPost[] seeds + CommunityPost type
+      pages/.gitkeep             empty (task #10)
+      components/.gitkeep        empty (task #9)
+      lib/.gitkeep               empty (task #7 next)
+      styles/.gitkeep            empty (task #11)
+```
+
+Working tree is clean. Everything is committed.
+
+---
+
+## Sessions log
+
+### Session 1 (2026-04-16) — foundation decisions
+- Locked frontend design (`reference/index.html`) pending working backend.
+- Chose Supabase free tier, monorepo layout with `web/`.
+- Pinned Node 22.17.0 per-project via `.nvmrc`; system Node 18 untouched.
+- Scaffolded Vite 8 + React 19 + TypeScript 6 in `web/`.
+- Original `git init` happened at `/Users/praveenkumarv/PycharmProjects/bloomanbrew` — that path is now abandoned.
+
+### Session 2 (2026-04-16) — re-init + types + data
+- Re-init git at `/Users/praveenkumarv/bloombrewvs`; old PycharmProjects path discarded (its `.git` is not migrated).
+- Committed Vite scaffold, updated PROGRESS.md paths (task #3b).
+- Created `src/` folder skeleton with `.gitkeep` in empty dirs (task #4).
+- Wrote 7 type modules + barrel; `MethodId` is a literal union (enables exhaustiveness in switches), all `id` fields on user-mutable entities are `string` (prepares for Supabase uuid migration) (task #5).
+- Ported all 11 static-data modules + barrel. Key naming fix: `CuratedBean.source` renamed to `availability` to avoid collision with `Bean.source` (provenance vs. sales channel). Secondary fix: Chemex single-cup recipe id changed from `c2` to `chemex-single` to avoid collision with Timemore C2 grinder id (task #6).
+- Four commits total; `tsc --noEmit` clean after every file write; no runtime code uses the types/data yet (will start at task #7).
+
+---
+
 ## How to run the project locally
 
 ```bash
 cd /Users/praveenkumarv/bloombrewvs
-nvm use                    # -> Node 22 via .nvmrc
+nvm use                    # → Node 22 via .nvmrc
 cd web
 npm run dev                # Vite dev server on http://localhost:5173
 ```
@@ -123,42 +221,45 @@ To compare against the original:
 open reference/index.html  # opens the prototype in your default browser
 ```
 
-To build:
+To build & verify:
 
 ```bash
 cd web
 npm run build
 npm run preview            # serve the production build
+npx tsc --noEmit -p tsconfig.app.json   # typecheck without emit
 ```
 
 ---
 
-## Current tech versions (as of 2026-04-16)
+## Current tech versions
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node | 22.17.0 | via `nvm use` in project dir |
+| Node | 22.17.0 | via `nvm use` |
 | npm | 10.9.2 | ships with Node 22 |
 | Vite | 8.0.8 | |
 | React | 19.2.4 | |
-| TypeScript | 6.0.2 | |
-| ESLint | 9.39.4 | Vite default config; will tighten in task #12 |
+| TypeScript | 6.0.2 | `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals` all on |
+| ESLint | 9.39.4 | Vite default; tighten in task #12 |
+| Vitest | — | install in task #7 |
 
 ---
 
 ## Open questions to revisit
 
 1. **GitHub remote** — when to create it; keep monorepo in one repo or split when mobile is added.
-2. **zsh auto-switch hook** — do we ever want it? (5 lines in `~/.zshrc`)
+2. **zsh auto-switch hook** — ever want it? (5 lines in `~/.zshrc`)
 3. **Custom domain** — eventual production URL (e.g. `bloomandbrew.app`); buy early so DNS propagation is not a launch-week problem.
 4. **Admin UI for recipe submissions** — MVP assumes manual SQL promotion; decide by end of Phase 3 whether to build a simple admin view before launch.
-5. **Monetization / Pro tier** — not required for launch, but if it is on the roadmap, Stripe integration slots into Phase 6 or 7.
+5. **Monetization / Pro tier** — not required for launch; if on roadmap, Stripe integration slots into Phase 6/7.
+6. **Step-description rewrites during scaling** — see task #7d above; decide now so it does not leak into pages (#10).
 
 ---
 
 ## How this file stays useful
 
-- Update the **Session summary**, **What is on disk**, and **Next steps** sections at the end of each working session.
-- Move completed tasks into a dated "done" section rather than deleting them — future you will want to see the timeline.
-- When phase boundaries cross, add a new **Phase N summary** section above the next steps.
+- Update **Sessions log**, **What's on disk**, and **Phase 0 task checklist** at the end of each working session.
+- When a task completes, check it off inline and move the detailed breakdown out of "Next up" into the sessions log entry for that day.
+- When phase boundaries cross, add a new **Phase N handoff** section below the current Next-up block.
 - If a decision changes, record the reversal *and the reason* so future you does not re-litigate it.
