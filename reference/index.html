@@ -1,0 +1,3307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bloom & Brew</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0807; }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  @keyframes drip { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(60px); opacity: 0; } }
+  @keyframes pulse-ring {
+    0% { transform: scale(0.95); opacity: 0.7; }
+    70% { transform: scale(1.08); opacity: 0; }
+    100% { transform: scale(1.08); opacity: 0; }
+  }
+  @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  @keyframes bar { 0%,100% { height: 20%; } 50% { height: 90%; } }
+  @keyframes press-down { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }
+  @keyframes bubble { 0% { transform: translateY(0) scale(0.5); opacity: 0; }
+                      50% { opacity: 0.8; }
+                      100% { transform: translateY(-30px) scale(1.2); opacity: 0; } }
+  @keyframes pour-stream { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @keyframes milk-swirl { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .fade-up { animation: fade-up 0.5s ease both; }
+  button { font-family: inherit; cursor: pointer; }
+  .scrollx { overflow-x: auto; scrollbar-width: thin; }
+  .scrollx::-webkit-scrollbar { height: 4px; }
+  .scrollx::-webkit-scrollbar-thumb { background: #2a2421; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* =========================================================================
+   ICONS
+   ========================================================================= */
+const Icon = ({ d, size = 18, color = "currentColor", strokeWidth = 1.8, fill = "none" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
+       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const Coffee = (p) => <Icon {...p} d={<><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>} />;
+const Droplet = (p) => <Icon {...p} d={<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>} />;
+const Camera = (p) => <Icon {...p} d={<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>} />;
+const Music = (p) => <Icon {...p} d={<><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></>} />;
+const Users = (p) => <Icon {...p} d={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />;
+const Plus = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
+const Minus = (p) => <Icon {...p} d={<line x1="5" y1="12" x2="19" y2="12"/>} />;
+const ChevronRight = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>} />;
+const ChevronLeft = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>} />;
+const Settings = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>} />;
+const Flame = (p) => <Icon {...p} d={<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>} />;
+const Scale = (p) => <Icon {...p} d={<><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></>} />;
+const Sparkles = (p) => <Icon {...p} d={<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>} />;
+const Heart = (p) => <Icon {...p} d={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>} />;
+const MessageCircle = (p) => <Icon {...p} d={<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>} />;
+const ImageIcon = (p) => <Icon {...p} d={<><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>} />;
+const Check = (p) => <Icon {...p} d={<polyline points="20 6 9 17 4 12"/>} />;
+const Disc3 = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><path d="M6 12c0-1.7.7-3.2 1.8-4.2"/><circle cx="12" cy="12" r="2"/><path d="M18 12c0 1.7-.7 3.2-1.8 4.2"/></>} />;
+const Home = (p) => <Icon {...p} d={<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>} />;
+const BookOpen = (p) => <Icon {...p} d={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} />;
+const Award = (p) => <Icon {...p} d={<><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>} />;
+const MapPin = (p) => <Icon {...p} d={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>} />;
+const Shuffle = (p) => <Icon {...p} d={<><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></>} />;
+const X = (p) => <Icon {...p} d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />;
+const Star = (p) => <Icon {...p} d={<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>} fill="currentColor" />;
+const Lightbulb = (p) => <Icon {...p} d={<><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></>} />;
+const Book = (p) => <Icon {...p} d={<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>} />;
+const Compass = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>} />;
+const ExternalLink = (p) => <Icon {...p} d={<><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>} />;
+
+/* =========================================================================
+   THEME
+   ========================================================================= */
+const T = {
+  bg: "#0a0807", bg2: "#141110", bg3: "#1c1816", line: "#2a2421",
+  cream: "#ebe0c8", creamDim: "#a89a82", brown: "#8b5a2b",
+  brownDeep: "#6b4423", espresso: "#3a2418", accent: "#d4a574",
+  milk: "#f5ead4",
+};
+const FONT = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
+
+/* =========================================================================
+   DATA
+   ========================================================================= */
+const METHODS = [
+  { id: "v60", name: "V60 Pourover", icon: "▽", time: "3:30", ratio: "1:16", difficulty: "Medium", category: "filter" },
+  { id: "aeropress", name: "Aeropress", icon: "◉", time: "2:00", ratio: "1:14", difficulty: "Easy", category: "filter" },
+  { id: "chemex", name: "Chemex", icon: "⏃", time: "5:00", ratio: "1:17", difficulty: "Medium", category: "filter" },
+  { id: "french", name: "French Press", icon: "▭", time: "4:00", ratio: "1:15", difficulty: "Easy", category: "immersion" },
+  { id: "moka", name: "Moka Pot", icon: "⏅", time: "6:00", ratio: "1:10", difficulty: "Medium", category: "pressure" },
+  { id: "espresso", name: "Espresso", icon: "■", time: "0:30", ratio: "1:2", difficulty: "Hard", category: "pressure" },
+  { id: "latte", name: "Latte", icon: "◐", time: "3:00", ratio: "1:5", difficulty: "Medium", category: "milk" },
+  { id: "cappuccino", name: "Cappuccino", icon: "◓", time: "3:00", ratio: "1:3", difficulty: "Medium", category: "milk" },
+  { id: "flatwhite", name: "Flat White", icon: "●", time: "3:00", ratio: "1:4", difficulty: "Medium", category: "milk" },
+];
+
+const GRINDERS = [
+  { id: "c40", name: "Comandante C40", clicksPerMicron: 0.033, type: "Hand" },
+  { id: "jx",  name: "1Zpresso JX",    clicksPerMicron: 0.077, type: "Hand" },
+  { id: "k6",  name: "1Zpresso K-Ultra", clicksPerMicron: 0.0125, type: "Hand" },
+  { id: "encore", name: "Baratza Encore", clicksPerMicron: 0.025, type: "Electric" },
+  { id: "c2",  name: "Timemore C2",     clicksPerMicron: 0.04,  type: "Hand" },
+  { id: "ode", name: "Fellow Ode Gen 2", clicksPerMicron: 0.03, type: "Electric" },
+];
+
+const RECIPES = {
+  v60: [
+    { id: "hoff", title: "Hoffmann Ultimate V60", author: "James Hoffmann", rating: 4.9, dose: 15, water: 250, temp: 96, microns: 700, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 45g water, swirl gently to saturate all grounds", pour: 45 },
+        { t: 45, label: "First pour", desc: "Pour to 100g in slow circles from center outward", pour: 55 },
+        { t: 75, label: "Second pour", desc: "Pour to 175g, keep the level high", pour: 75 },
+        { t: 105, label: "Final pour", desc: "Pour to 250g, gentle swirl to flatten the bed", pour: 75 },
+        { t: 210, label: "Drawdown", desc: "Let it finish. Should complete around 3:30 total", pour: 0 },
+      ] },
+    { id: "tetsu", title: "Tetsu Kasuya 4:6 Method", author: "Tetsu Kasuya", rating: 4.8, dose: 20, water: 300, temp: 92, microns: 800, hasMilk: false,
+      steps: [
+        { t: 0, label: "Pour 1 — Sweetness", desc: "Pour 50g slowly. Smaller pour = more sweetness", pour: 50 },
+        { t: 45, label: "Pour 2 — Acidity", desc: "Pour to 120g. This pour balances the acidity", pour: 70 },
+        { t: 90, label: "Pour 3", desc: "Pour to 180g. Controls strength", pour: 60 },
+        { t: 135, label: "Pour 4", desc: "Pour to 240g", pour: 60 },
+        { t: 180, label: "Pour 5", desc: "Pour to 300g. Final pour for strength", pour: 60 },
+        { t: 210, label: "Drawdown", desc: "Let it finish, aim for 3:30 total", pour: 0 },
+      ] },
+    { id: "lance", title: "Lance Hedrick One Cup", author: "Lance Hedrick", rating: 4.7, dose: 14, water: 230, temp: 99, microns: 650, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 60g at near-boiling water, swirl hard", pour: 60 },
+        { t: 45, label: "Main pour", desc: "Pour continuously to 230g in slow spiral, ~30s", pour: 170 },
+        { t: 75, label: "Rao spin", desc: "Swirl the dripper once to flatten the bed", pour: 0 },
+        { t: 180, label: "Drawdown", desc: "Complete around 2:30-3:00 total", pour: 0 },
+      ] },
+    { id: "scott", title: "Scott Rao Pulse Pour", author: "Scott Rao", rating: 4.7, dose: 22, water: 360, temp: 95, microns: 720, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 66g (3x dose), swirl thoroughly", pour: 66 },
+        { t: 45, label: "Pulse 1", desc: "Pour to 180g in gentle pulses", pour: 114 },
+        { t: 90, label: "Pulse 2", desc: "Pour to 270g, maintain slurry level", pour: 90 },
+        { t: 135, label: "Pulse 3", desc: "Pour to 360g, then spin the dripper", pour: 90 },
+        { t: 240, label: "Drawdown", desc: "Target 4:00 total brew time", pour: 0 },
+      ] },
+    { id: "onyx", title: "Onyx Classic V60", author: "Onyx Coffee Lab", rating: 4.6, dose: 22, water: 350, temp: 96, microns: 700, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 60g water, stir gently with a spoon", pour: 60 },
+        { t: 30, label: "First main pour", desc: "Pour to 200g over 30 seconds", pour: 140 },
+        { t: 75, label: "Second main pour", desc: "Pour to 350g over 30 seconds", pour: 150 },
+        { t: 210, label: "Drawdown", desc: "Total time around 3:30", pour: 0 },
+      ] },
+    { id: "blue", title: "Blue Bottle Method", author: "Blue Bottle Coffee", rating: 4.4, dose: 30, water: 500, temp: 93, microns: 750, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 60g (2x dose), gentle swirl", pour: 60 },
+        { t: 45, label: "First pour", desc: "Pour to 150g in circular motion", pour: 90 },
+        { t: 90, label: "Second pour", desc: "Pour to 300g, keep level steady", pour: 150 },
+        { t: 150, label: "Third pour", desc: "Pour to 500g, finish the brew", pour: 200 },
+        { t: 240, label: "Drawdown", desc: "Target 4:00 total", pour: 0 },
+      ] },
+    { id: "icv", title: "Iced V60 (Japanese-style)", author: "Mark Prince", rating: 4.5, dose: 20, water: 200, temp: 96, microns: 600, hasMilk: false,
+      steps: [
+        { t: 0, label: "Ice in server", desc: "Add 100g ice to the server before brewing", pour: 0 },
+        { t: 15, label: "Bloom", desc: "Pour 40g over grounds, swirl", pour: 40 },
+        { t: 45, label: "Main pour", desc: "Pour to 200g in gentle spiral", pour: 160 },
+        { t: 150, label: "Drawdown", desc: "Coffee drips onto ice — instant chill", pour: 0 },
+        { t: 200, label: "Swirl", desc: "Swirl the server to mix. Serve over fresh ice", pour: 0 },
+      ] },
+  ],
+  aeropress: [
+    { id: "wac", title: "World Aeropress Champion '23", author: "Carlos de la Torre", rating: 4.9, dose: 14, water: 200, temp: 88, microns: 500, hasMilk: false,
+      steps: [
+        { t: 0, label: "Add water", desc: "Pour 200g water quickly, stir 3 times with paddle", pour: 200 },
+        { t: 60, label: "Steep", desc: "Attach cap, let sit undisturbed", pour: 0 },
+        { t: 105, label: "Press", desc: "Press slowly and steadily over 30 seconds", pour: 0 },
+        { t: 135, label: "Done", desc: "Stop when you hear the hiss", pour: 0 },
+      ] },
+    { id: "inv", title: "Inverted Method", author: "Aeropress Co.", rating: 4.7, dose: 17, water: 220, temp: 85, microns: 550, hasMilk: false,
+      steps: [
+        { t: 0, label: "Invert & load", desc: "Flip Aeropress upside down, add grounds", pour: 0 },
+        { t: 10, label: "Pour water", desc: "Pour 220g water, stir briskly 5 times", pour: 220 },
+        { t: 60, label: "Attach cap", desc: "Screw on rinsed filter cap, wait", pour: 0 },
+        { t: 90, label: "Flip & press", desc: "Carefully flip onto cup, press over 25s", pour: 0 },
+        { t: 120, label: "Done", desc: "Stop at the hiss — don't squeeze more", pour: 0 },
+      ] },
+    { id: "tim", title: "Tim Wendelboe AP", author: "Tim Wendelboe", rating: 4.7, dose: 15, water: 220, temp: 90, microns: 520, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 30g water, stir once, bloom 30s", pour: 30 },
+        { t: 30, label: "Fill", desc: "Pour to 220g, don't stir again", pour: 190 },
+        { t: 60, label: "Cap & wait", desc: "Attach cap immediately to trap heat", pour: 0 },
+        { t: 90, label: "Press", desc: "Press slowly over 45 seconds", pour: 0 },
+        { t: 135, label: "Done", desc: "Stop when you feel resistance", pour: 0 },
+      ] },
+    { id: "jh", title: "Hoffmann Ultimate Aeropress", author: "James Hoffmann", rating: 4.8, dose: 11, water: 200, temp: 95, microns: 480, hasMilk: false,
+      steps: [
+        { t: 0, label: "Add water", desc: "Pour 200g quickly, stir once gently", pour: 200 },
+        { t: 15, label: "Wait", desc: "Let it steep untouched", pour: 0 },
+        { t: 120, label: "Swirl", desc: "Swirl the Aeropress gently to settle grounds", pour: 0 },
+        { t: 150, label: "Press", desc: "Press slowly over 30 seconds", pour: 0 },
+        { t: 180, label: "Done", desc: "Stop before the hiss for cleaner cup", pour: 0 },
+      ] },
+    { id: "fast", title: "Fast & Strong", author: "Community", rating: 4.3, dose: 18, water: 150, temp: 92, microns: 450, hasMilk: false,
+      steps: [
+        { t: 0, label: "Add water", desc: "Pour 150g water, stir vigorously", pour: 150 },
+        { t: 15, label: "Short steep", desc: "Cap quickly, brief rest", pour: 0 },
+        { t: 45, label: "Press", desc: "Press firmly over 20 seconds", pour: 0 },
+        { t: 65, label: "Dilute", desc: "Add 100g hot water to the cup to taste", pour: 0 },
+      ] },
+    { id: "ic", title: "Iced Aeropress", author: "Community", rating: 4.4, dose: 18, water: 120, temp: 88, microns: 500, hasMilk: false,
+      steps: [
+        { t: 0, label: "Ice in cup", desc: "Fill cup with 100g ice", pour: 0 },
+        { t: 10, label: "Add water", desc: "Pour 120g hot water into Aeropress, stir", pour: 120 },
+        { t: 45, label: "Steep", desc: "Cap and rest briefly", pour: 0 },
+        { t: 75, label: "Press", desc: "Press onto ice over 25 seconds", pour: 0 },
+        { t: 100, label: "Stir & serve", desc: "Stir to melt ice and chill. Top up if needed", pour: 0 },
+      ] },
+  ],
+  chemex: [
+    { id: "c1", title: "Classic Chemex 6-cup", author: "Chemex Co.", rating: 4.8, dose: 42, water: 700, temp: 96, microns: 850, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 100g water (2.5x dose), swirl carafe gently", pour: 100 },
+        { t: 45, label: "First pour", desc: "Pour to 300g in slow spirals", pour: 200 },
+        { t: 120, label: "Second pour", desc: "Pour to 500g, maintaining level", pour: 200 },
+        { t: 210, label: "Final pour", desc: "Pour to 700g", pour: 200 },
+        { t: 330, label: "Drawdown", desc: "Target 5:30 total. Remove filter, swirl to mix", pour: 0 },
+      ] },
+    { id: "c2", title: "Chemex Single Cup", author: "Community", rating: 4.6, dose: 22, water: 360, temp: 96, microns: 830, hasMilk: false,
+      steps: [
+        { t: 0, label: "Bloom", desc: "Pour 50g water, swirl", pour: 50 },
+        { t: 40, label: "Main pour", desc: "Pour to 200g in slow circles", pour: 150 },
+        { t: 100, label: "Final pour", desc: "Pour to 360g, gently", pour: 160 },
+        { t: 240, label: "Drawdown", desc: "Target 4:30 total", pour: 0 },
+      ] },
+  ],
+  french: [
+    { id: "f1", title: "Hoffmann French Press", author: "James Hoffmann", rating: 4.9, dose: 30, water: 500, temp: 95, microns: 1100, hasMilk: false,
+      steps: [
+        { t: 0, label: "Pour water", desc: "Pour all 500g water quickly over grounds", pour: 500 },
+        { t: 240, label: "Break crust", desc: "Gently stir the crust with a spoon, 3 times", pour: 0 },
+        { t: 260, label: "Skim", desc: "Scoop off floating foam and grounds with 2 spoons", pour: 0 },
+        { t: 300, label: "Rest", desc: "Let it settle — grounds sink to the bottom", pour: 0 },
+        { t: 540, label: "Pour gently", desc: "Pour slowly without plunging — the filter stays up top", pour: 0 },
+      ] },
+    { id: "f2", title: "Classic French Press", author: "Community", rating: 4.5, dose: 30, water: 500, temp: 94, microns: 1100, hasMilk: false,
+      steps: [
+        { t: 0, label: "Pour water", desc: "Pour 500g water over grounds, stir briefly", pour: 500 },
+        { t: 30, label: "Attach plunger", desc: "Place plunger on top (don't press)", pour: 0 },
+        { t: 240, label: "Press", desc: "Press slowly and steadily to the bottom", pour: 0 },
+        { t: 270, label: "Serve", desc: "Decant immediately — don't let it sit on grounds", pour: 0 },
+      ] },
+  ],
+  moka: [
+    { id: "m1", title: "Stovetop Classic", author: "Bialetti", rating: 4.6, dose: 18, water: 200, temp: 100, microns: 400, hasMilk: false,
+      steps: [
+        { t: 0, label: "Pre-heat water", desc: "Fill bottom chamber with pre-heated water to the valve", pour: 0 },
+        { t: 30, label: "Add grounds", desc: "Fill basket level — don't tamp. Assemble tightly", pour: 0 },
+        { t: 60, label: "Medium heat", desc: "Place on stove, lid open, medium flame", pour: 0 },
+        { t: 180, label: "Listen", desc: "Coffee begins streaming — honey-colored, steady", pour: 0 },
+        { t: 300, label: "Pull off heat", desc: "Remove when stream turns pale/blonde", pour: 0 },
+        { t: 330, label: "Cool the base", desc: "Run cold water on the bottom to stop extraction", pour: 0 },
+      ] },
+    { id: "m2", title: "Moka Concentrate", author: "Community", rating: 4.4, dose: 14, water: 150, temp: 100, microns: 420, hasMilk: false,
+      steps: [
+        { t: 0, label: "Hot water in base", desc: "Fill with 150g pre-heated water", pour: 0 },
+        { t: 30, label: "Level the basket", desc: "Fill basket, level flat — no tamping", pour: 0 },
+        { t: 60, label: "Low-medium heat", desc: "Assemble, place on gentle flame", pour: 0 },
+        { t: 240, label: "Stream starts", desc: "Watch for steady honey stream", pour: 0 },
+        { t: 360, label: "Done", desc: "Off heat when it sputters, cool base", pour: 0 },
+      ] },
+  ],
+  espresso: [
+    { id: "e1", title: "Modern Espresso", author: "Lance Hedrick", rating: 4.8, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: false,
+      steps: [
+        { t: 0, label: "Flush the group", desc: "Run 2s flush to stabilize temperature", pour: 0 },
+        { t: 5, label: "Dose & distribute", desc: "Grind 18g in, WDT with needles to break clumps", pour: 0 },
+        { t: 20, label: "Tamp", desc: "Level, even tamp. ~15kg pressure", pour: 0 },
+        { t: 25, label: "Lock & pull", desc: "Lock portafilter, start shot immediately", pour: 0 },
+        { t: 30, label: "Extraction", desc: "Target 36g out in 25-30s. Mouse-tail pour", pour: 36 },
+        { t: 55, label: "Stop", desc: "Stop when blonding starts or at 36g", pour: 0 },
+      ] },
+    { id: "e2", title: "Classic Italian Shot", author: "SCA", rating: 4.5, dose: 18, water: 36, temp: 92, microns: 240, hasMilk: false,
+      steps: [
+        { t: 0, label: "Flush", desc: "Brief group flush to purge", pour: 0 },
+        { t: 5, label: "Dose", desc: "Grind 18g directly into portafilter", pour: 0 },
+        { t: 15, label: "Tamp", desc: "Firm, level tamp", pour: 0 },
+        { t: 22, label: "Pull", desc: "Lock and start immediately", pour: 0 },
+        { t: 27, label: "Extract", desc: "Aim for 36g out in 25s", pour: 36 },
+      ] },
+  ],
+  latte: [
+    { id: "lat1", title: "Classic Latte", author: "Barista Guild", rating: 4.8, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: true, milk: 200,
+      steps: [
+        { t: 0, label: "Pull shot", desc: "Pull 36g espresso directly into warmed cup", pour: 36 },
+        { t: 30, label: "Purge wand", desc: "Quick steam blast to clear condensation", pour: 0 },
+        { t: 40, label: "Steam milk", desc: "Stretch 3-5s at surface, then texture deep. Target 60°C", pour: 0 },
+        { t: 90, label: "Tap & swirl", desc: "Tap pitcher to pop bubbles, swirl to integrate", pour: 0 },
+        { t: 105, label: "Pour", desc: "Pour from height to blend, close to surface for art", pour: 200 },
+      ] },
+    { id: "lat2", title: "Iced Latte", author: "Community", rating: 4.6, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: true, milk: 200,
+      steps: [
+        { t: 0, label: "Ice the glass", desc: "Fill a tall glass with ice", pour: 0 },
+        { t: 10, label: "Cold milk", desc: "Pour 200g cold whole milk over ice", pour: 200 },
+        { t: 30, label: "Pull shot", desc: "Pull 36g espresso into a separate vessel", pour: 36 },
+        { t: 60, label: "Pour over milk", desc: "Pour espresso slowly over the milk — creates the layered look", pour: 0 },
+        { t: 75, label: "Stir & serve", desc: "Stir before drinking to combine", pour: 0 },
+      ] },
+  ],
+  cappuccino: [
+    { id: "cap1", title: "Italian Cappuccino", author: "SCA Standard", rating: 4.9, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: true, milk: 120,
+      steps: [
+        { t: 0, label: "Pull shot", desc: "Pull 36g espresso into warmed 150ml cup", pour: 36 },
+        { t: 30, label: "Purge wand", desc: "Quick steam blast", pour: 0 },
+        { t: 40, label: "Stretch milk", desc: "Longer stretch — 6-8s of 'tssss' for thick foam", pour: 0 },
+        { t: 75, label: "Texture", desc: "Submerge wand, spin to polish. Target 60°C", pour: 0 },
+        { t: 110, label: "Pour & spoon", desc: "Pour milk, then spoon the thick foam on top", pour: 120 },
+      ] },
+    { id: "cap2", title: "Dry Cappuccino", author: "Community", rating: 4.5, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: true, milk: 100,
+      steps: [
+        { t: 0, label: "Pull shot", desc: "36g espresso into warm cup", pour: 36 },
+        { t: 30, label: "Aggressive stretch", desc: "8-10s of air to build very thick foam", pour: 0 },
+        { t: 75, label: "Minimal texture", desc: "Brief spin — you want stiff foam, not velvet", pour: 0 },
+        { t: 110, label: "Spoon foam", desc: "Spoon only the foam onto the shot. Skip the milk", pour: 0 },
+      ] },
+  ],
+  flatwhite: [
+    { id: "fw1", title: "Aussie Flat White", author: "Melbourne Standard", rating: 4.8, dose: 18, water: 36, temp: 93, microns: 250, hasMilk: true, milk: 150,
+      steps: [
+        { t: 0, label: "Pull ristretto", desc: "36g out from 18g in — more concentrated shot", pour: 36 },
+        { t: 30, label: "Purge wand", desc: "Clear condensation with a brief blast", pour: 0 },
+        { t: 40, label: "Minimal stretch", desc: "Just 2-3s of air — no visible bubbles", pour: 0 },
+        { t: 60, label: "Texture deep", desc: "Spin wand deep to create silky microfoam. 60°C", pour: 0 },
+        { t: 100, label: "Pour low", desc: "Pour from low height to integrate fully. Finish with surface art", pour: 150 },
+      ] },
+  ],
+};
+
+const FEED = [
+  { id: 1, user: "kenji.brews", time: "2h", caption: "Sunday V60 with Ethiopian Yirgacheffe — bright and floral.", likes: 142, comments: 18, hue: 30 },
+  { id: 2, user: "morning_pour", time: "5h", caption: "First pull on the new Cafelat. Worth the wait.", likes: 89, comments: 7, hue: 18 },
+  { id: 3, user: "slow_drip_co", time: "1d", caption: "Aeropress + Geisha = afternoon reset.", likes: 234, comments: 31, hue: 42 },
+];
+
+const GLOSSARY = [
+  { term: "Bloom", def: "The initial 30-45s pour where CO₂ escapes from fresh grounds. Skipping it = sour, uneven extraction." },
+  { term: "Extraction", def: "The process of dissolving flavor compounds from grounds into water. Under = sour, over = bitter, just right = sweet." },
+  { term: "TDS", def: "Total Dissolved Solids — how strong your coffee actually is. Pourover sits around 1.3-1.5%." },
+  { term: "Crema", def: "The golden foam on espresso. CO₂ trapped in oils. Looks pretty, doesn't taste great on its own." },
+  { term: "Bypass", def: "Adding water to brewed coffee to dilute strength without changing extraction. Saves over-extracted shots." },
+  { term: "Microfoam", def: "Steamed milk with tiny, glossy bubbles. The canvas for latte art." },
+  { term: "Single Origin", def: "Coffee from one farm, region, or country. The opposite of a blend. Showcases unique terroir." },
+  { term: "Honey Process", def: "Coffee dried with mucilage still on the bean. Sweeter, fuller body than washed." },
+  { term: "Ratio", def: "Coffee dose : water weight. 1:16 means 1g coffee per 16g water. Higher = weaker, lower = stronger." },
+  { term: "Channeling", def: "Water finding the path of least resistance through grounds. Causes uneven extraction. Espresso's nemesis." },
+  { term: "Refractometer", def: "Tool that measures TDS by reading how light bends through coffee. Removes guesswork." },
+  { term: "Cupping", def: "Standard tasting protocol — break the crust, slurp loudly, evaluate. How professionals score coffee." },
+];
+
+const TIPS = [
+  "Always weigh your coffee — eyeballing scoops is the #1 reason brews are inconsistent.",
+  "Pre-wet your filter. It rinses paper taste and warms the brewer.",
+  "Coffee tastes best 7-21 days post-roast. Buy with the roast date visible.",
+  "Store beans in an airtight container, away from light. Never freeze daily-use beans.",
+  "Water is 98% of your cup. If your tap tastes bad, your coffee will too.",
+  "Grind right before brewing. Pre-ground coffee loses 60% of aroma in 15 minutes.",
+  "Hotter water = faster extraction. Light roasts often need 96°C+, dark roasts 88-92°C.",
+  "Swirl your V60 after the bloom. It evens out the slurry without disturbing the bed.",
+  "If your espresso is sour, grind finer. If bitter, grind coarser. The dial-in dance.",
+  "The best brewer is the one you'll actually use every morning.",
+];
+
+const FUN_FACTS = [
+  "Coffee is the world's second-most traded commodity, after crude oil.",
+  "There are over 800 aroma compounds in roasted coffee — wine has about 400.",
+  "Espresso has less caffeine per serving than drip — you just drink it faster.",
+  "Goats discovered coffee. Ethiopian shepherd Kaldi noticed his herd dancing after eating the cherries.",
+  "The world's most expensive coffee, Kopi Luwak, comes from civet droppings.",
+  "Finland drinks the most coffee per capita — ~10kg per person per year.",
+  "Coffee 'cherries' are fruits. The bean is the seed inside.",
+  "Brazil produces ~40% of the world's coffee. Vietnam is second.",
+];
+
+const INDIAN_BEANS = [
+  { name: "Attikan Estate", roaster: "Blue Tokai", origin: "Coorg, Karnataka", notes: "Chocolate, nutty, smooth", price: "₹650/250g", source: "Online + Cafes",
+    desc: "A workhorse single-origin from one of India's most consistent estates. Great for daily V60." },
+  { name: "Vienna Roast", roaster: "Subko", origin: "Chikmagalur", notes: "Dark cocoa, brown sugar, full body", price: "₹750/250g", source: "Online + Mumbai",
+    desc: "Subko's flagship dark roast. Built for milk drinks and moka pots." },
+  { name: "Monsoon Malabar", roaster: "Araku Coffee", origin: "Kerala", notes: "Earthy, low acid, musty sweetness", price: "₹600/250g", source: "Online",
+    desc: "A uniquely Indian process — beans monsooned in coastal warehouses for that signature funk." },
+  { name: "Anaerobic Natural", roaster: "Kapi Kottai", origin: "BR Hills", notes: "Strawberry, wine, juicy", price: "₹900/250g", source: "Online",
+    desc: "Funky, fermented, fruit-forward. Polarising in the best way. For the adventurous palate." },
+  { name: "Ratnagiri Estate", roaster: "Maverick & Farmer", origin: "Chikmagalur", notes: "Caramel, orange, honey", price: "₹720/250g", source: "Online + Bangalore",
+    desc: "Honey-processed and bright. M&F's house favorite for filter coffee." },
+  { name: "Sangameshwar Peaberry", roaster: "Naivo Coffee", origin: "Karnataka", notes: "Citrus, jasmine, clean", price: "₹680/250g", source: "Online",
+    desc: "Peaberries are rare round beans — denser, often brighter. Excellent for pourover." },
+  { name: "Riverdale", roaster: "Quick Brown Fox", origin: "Yercaud, Tamil Nadu", notes: "Almond, dark chocolate, syrupy", price: "₹550/250g", source: "Online + Delhi",
+    desc: "Affordable, dependable, espresso-friendly. Good entry point into specialty." },
+  { name: "Gems of Araku", roaster: "Araku Coffee", origin: "Andhra Pradesh", notes: "Honey, mango, complex", price: "₹1200/250g", source: "Online + Pop-ups",
+    desc: "Tribal-grown, biodynamic, Cup-of-Excellence ranked. India's flagship specialty bean." },
+];
+
+/* =========================================================================
+   RESPONSIVE
+   ========================================================================= */
+function useViewport() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  useEffect(() => {
+    const onResize = () => setW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return { width: w, isDesktop: w >= 900 };
+}
+
+/* =========================================================================
+   APP ROOT
+   ========================================================================= */
+function App() {
+  const [screen, setScreen] = useState("welcome");
+  const [stack, setStack] = useState([]);
+  const [grinder, setGrinder] = useState(GRINDERS[0]);
+  const [bean, setBean] = useState(null);
+  const [method, setMethod] = useState(null);
+  const [recipe, setRecipe] = useState(null);
+  const [beanLog, setBeanLog] = useState([
+    { name: "Yirgacheffe", roaster: "Blue Tokai", roast: "Light", notes: "Floral, bergamot, citrus", date: "Mar 28" },
+  ]);
+  const [brewLog, setBrewLog] = useState([
+    // Sample seed entry so the journal isn't empty on first launch
+    { id: 1, recipeId: "hoff", recipeTitle: "Hoffmann Ultimate V60", method: "v60",
+      bean: "Yirgacheffe", grinder: "Comandante C40", date: "Apr 14",
+      dose: 15, water: 250, temp: 96, clicks: 23,
+      scores: { sweetness: 6, acidity: 8, body: 4, bitterness: 3, aftertaste: 7, overall: 7 },
+      notes: "Bright and clean but a bit thin. Floral peaks." },
+  ]);
+  const [error, setError] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState({
+    units: "metric", tempUnit: "C", musicAuto: false, notifications: true, name: "Adrian",
+  });
+
+  const go = (next) => { setStack((s) => [...s, screen]); setScreen(next); };
+  const back = () => {
+    setStack((s) => {
+      if (s.length === 0) { setScreen("welcome"); return s; }
+      const prev = s[s.length - 1];
+      setScreen(prev);
+      return s.slice(0, -1);
+    });
+  };
+
+  useEffect(() => {
+    const handler = (e) => { console.warn(e); setError(e.message || "something went wrong"); };
+    window.addEventListener("error", handler);
+    return () => window.removeEventListener("error", handler);
+  }, []);
+
+  const ctx = { grinder, setGrinder, bean, setBean, method, setMethod, recipe, setRecipe,
+                beanLog, setBeanLog, brewLog, setBrewLog,
+                go, back, screen,
+                settings, setSettings, openSettings: () => setSettingsOpen(true) };
+
+  const vp = useViewport();
+
+  let view;
+  try {
+    switch (screen) {
+      case "welcome": view = <Welcome ctx={ctx} />; break;
+      case "methods": view = <Methods ctx={ctx} />; break;
+      case "setup": view = <Setup ctx={ctx} />; break;
+      case "recipes": view = <RecipeList ctx={ctx} />; break;
+      case "brew": view = <Brew ctx={ctx} />; break;
+      case "feed": view = <Feed ctx={ctx} />; break;
+      case "beans": view = <BeansLog ctx={ctx} />; break;
+      case "scan": view = <ScanBean ctx={ctx} />; break;
+      case "submit": view = <SubmitRecipe ctx={ctx} />; break;
+      case "cafes": view = <Cafes ctx={ctx} />; break;
+      case "glossary": view = <Glossary ctx={ctx} />; break;
+      case "discover": view = <Discover ctx={ctx} />; break;
+      case "journal": view = <Journal ctx={ctx} />; break;
+      case "logbrew": view = <LogBrew ctx={ctx} />; break;
+      case "tweak": view = <Tweak ctx={ctx} />; break;
+      default: view = <Welcome ctx={ctx} />;
+    }
+  } catch (e) {
+    view = <Crash msg={e.message} onHome={() => { setStack([]); setScreen("welcome"); setError(null); }} />;
+  }
+
+  if (vp.isDesktop) {
+    return (
+      <div style={{ fontFamily: FONT, background: T.bg, color: T.cream, minHeight: "100vh",
+                    display: "flex", letterSpacing: "0.01em" }}>
+        <SideNav screen={screen} go={(s) => { setStack([]); setScreen(s); }} openSettings={() => setSettingsOpen(true)} />
+        <div style={{ flex: 1, minHeight: "100vh", display: "flex", justifyContent: "center" }}>
+          <div style={{ width: "100%", maxWidth: 1100, position: "relative" }}>
+            {error && <ErrorBar msg={error} onClose={() => setError(null)} />}
+            <div className="fade-up" key={screen}>{view}</div>
+          </div>
+        </div>
+        {settingsOpen && <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ fontFamily: FONT, background: T.bg, color: T.cream, minHeight: "100vh",
+                  display: "flex", justifyContent: "center", letterSpacing: "0.01em" }}>
+      <div style={{ width: "100%", maxWidth: 440, minHeight: "100vh", background: T.bg,
+                    position: "relative", paddingBottom: 80,
+                    borderLeft: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}` }}>
+        {error && <ErrorBar msg={error} onClose={() => setError(null)} />}
+        <div className="fade-up" key={screen}>{view}</div>
+        {screen !== "welcome" && screen !== "brew" &&
+          <BottomNav screen={screen} go={(s) => { setStack([]); setScreen(s); }} />}
+      </div>
+      {settingsOpen && <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />}
+    </div>
+  );
+}
+
+/* =========================================================================
+   SHARED
+   ========================================================================= */
+const iconBtn = { width: 34, height: 34, border: `1px solid ${T.line}`, background: "transparent",
+                  borderRadius: 999, display: "grid", placeItems: "center", color: T.cream };
+const primaryBtn = { background: T.cream, color: T.bg, border: "none", padding: "14px 28px",
+                     borderRadius: 999, fontSize: 13, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" };
+const ghostBtn = { background: "transparent", color: T.cream, border: `1px solid ${T.line}`,
+                   padding: "14px 28px", borderRadius: 999, fontSize: 13, letterSpacing: "0.1em", textTransform: "uppercase" };
+const input = { width: "100%", background: T.bg2, border: `1px solid ${T.line}`, color: T.cream,
+                padding: "14px 16px", borderRadius: 12, fontSize: 14, fontFamily: FONT, outline: "none" };
+
+function Header({ title, onBack, right }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", padding: "20px 22px 14px",
+                  borderBottom: `1px solid ${T.line}`, gap: 14 }}>
+      {onBack && <button onClick={onBack} style={iconBtn}><ChevronLeft size={18} color={T.cream} /></button>}
+      <div style={{ fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", color: T.creamDim, flex: 1 }}>{title}</div>
+      {right}
+    </div>
+  );
+}
+function Pill({ children, dim }) {
+  return <span style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase",
+    padding: "4px 9px", border: `1px solid ${T.line}`, borderRadius: 999,
+    color: dim ? T.creamDim : T.cream }}>{children}</span>;
+}
+function ErrorBar({ msg, onClose }) {
+  return (
+    <div style={{ background: "#3a1a14", padding: "10px 16px", display: "flex",
+                  justifyContent: "space-between", fontSize: 12, color: "#f5b8a8" }}>
+      <span>⚠ {msg}</span>
+      <button onClick={onClose} style={{ background: "none", border: "none", color: "#f5b8a8" }}>×</button>
+    </div>
+  );
+}
+function Crash({ msg, onHome }) {
+  return (
+    <div style={{ padding: 40, textAlign: "center" }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>☕</div>
+      <div style={{ fontSize: 20, marginBottom: 8 }}>The pour spilled.</div>
+      <div style={{ color: T.creamDim, fontSize: 13, marginBottom: 24 }}>{msg}</div>
+      <button onClick={onHome} style={primaryBtn}>Back to start</button>
+    </div>
+  );
+}
+function BottomNav({ screen, go }) {
+  const items = [
+    { id: "welcome", icon: Home, label: "Home" },
+    { id: "methods", icon: Coffee, label: "Brew" },
+    { id: "journal", icon: Book, label: "Journal" },
+    { id: "discover", icon: Compass, label: "Beans" },
+    { id: "cafes", icon: MapPin, label: "Cafes" },
+  ];
+  return (
+    <div style={{ position: "fixed", bottom: 0, width: "100%", maxWidth: 440,
+                  background: T.bg, borderTop: `1px solid ${T.line}`, display: "flex",
+                  padding: "10px 0 14px", justifyContent: "space-around" }}>
+      {items.map((it) => {
+        const active = screen === it.id || (it.id === "methods" && ["setup","recipes"].includes(screen));
+        const I = it.icon;
+        return (
+          <button key={it.id} onClick={() => go(it.id)} style={{ background: "none", border: "none",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            color: active ? T.cream : T.creamDim }}>
+            <I size={18} strokeWidth={1.5} />
+            <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase" }}>{it.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+function SideNav({ screen, go, openSettings }) {
+  const items = [
+    { id: "welcome", icon: Home, label: "Home" },
+    { id: "methods", icon: Coffee, label: "Brew" },
+    { id: "journal", icon: Book, label: "Brew Journal" },
+    { id: "discover", icon: Compass, label: "Discover Beans" },
+    { id: "beans", icon: BookOpen, label: "My Bean Log" },
+    { id: "feed", icon: Users, label: "Community" },
+    { id: "cafes", icon: MapPin, label: "Cafes Near Me" },
+    { id: "glossary", icon: Book, label: "Glossary" },
+  ];
+  return (
+    <div style={{ width: 240, minHeight: "100vh", background: T.bg2, borderRight: `1px solid ${T.line}`,
+                  padding: "30px 18px", display: "flex", flexDirection: "column", position: "sticky", top: 0 }}>
+      <div style={{ padding: "0 12px 36px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <div style={{ width: 28, height: 28, background: T.cream, borderRadius: 8,
+                        display: "grid", placeItems: "center", color: T.bg, fontSize: 14, fontWeight: 600 }}>✿</div>
+          <div style={{ fontSize: 14, letterSpacing: "0.05em", color: T.cream, fontWeight: 300 }}>Bloom <span style={{ color: T.accent }}>&</span> Brew</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+        {items.map((it) => {
+          const active = screen === it.id || (it.id === "methods" && ["setup","recipes","brew"].includes(screen));
+          const I = it.icon;
+          return (
+            <button key={it.id} onClick={() => go(it.id)} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+              background: active ? T.bg3 : "transparent", border: "none", borderRadius: 10,
+              color: active ? T.cream : T.creamDim, textAlign: "left",
+              fontSize: 13, letterSpacing: "0.05em",
+            }}>
+              <I size={16} strokeWidth={1.5} />
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={openSettings} style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+        background: "transparent", border: "none", borderRadius: 10,
+        color: T.creamDim, textAlign: "left", fontSize: 13,
+      }}>
+        <Settings size={16} strokeWidth={1.5} />
+        <span>Settings</span>
+      </button>
+    </div>
+  );
+}
+
+function SettingsModal({ settings, setSettings, onClose }) {
+  const set = (k, v) => setSettings({ ...settings, [k]: v });
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 20,
+        width: "100%", maxWidth: 460, maxHeight: "85vh", overflow: "auto",
+      }}>
+        <div style={{ padding: "22px 24px 18px", borderBottom: `1px solid ${T.line}`,
+                      display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", color: T.creamDim }}>Settings</div>
+          <button onClick={onClose} style={iconBtn}><X size={16} color={T.cream} /></button>
+        </div>
+        <div style={{ padding: "26px 24px 30px" }}>
+          <SetField label="Display name">
+            <input value={settings.name} onChange={(e) => set("name", e.target.value)} style={input} />
+          </SetField>
+          <SetField label="Units">
+            <Toggle options={[["metric","Metric (g)"],["imperial","Imperial (oz)"]]}
+                    value={settings.units} onChange={(v) => set("units", v)} />
+          </SetField>
+          <SetField label="Temperature">
+            <Toggle options={[["C","Celsius"],["F","Fahrenheit"]]}
+                    value={settings.tempUnit} onChange={(v) => set("tempUnit", v)} />
+          </SetField>
+          <SetField label="Auto-play music during brew">
+            <Switch on={settings.musicAuto} onChange={(v) => set("musicAuto", v)} />
+          </SetField>
+          <SetField label="Step notifications">
+            <Switch on={settings.notifications} onChange={(v) => set("notifications", v)} />
+          </SetField>
+          <div style={{ marginTop: 26, paddingTop: 22, borderTop: `1px solid ${T.line}` }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 12 }}>ABOUT</div>
+            <div style={{ fontSize: 12, color: T.creamDim, lineHeight: 1.6 }}>
+              Bloom & Brew · v0.2<br/>A space to brew slower, drink better.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function SetField({ label, children }) {
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 10 }}>{label.toUpperCase()}</div>
+      {children}
+    </div>
+  );
+}
+function Toggle({ options, value, onChange }) {
+  return (
+    <div style={{ display: "flex", background: T.bg3, padding: 4, borderRadius: 12, gap: 4 }}>
+      {options.map(([v, label]) => (
+        <button key={v} onClick={() => onChange(v)} style={{
+          flex: 1, padding: "10px 14px", borderRadius: 9, border: "none",
+          background: value === v ? T.cream : "transparent",
+          color: value === v ? T.bg : T.creamDim, fontSize: 12, fontFamily: FONT,
+        }}>{label}</button>
+      ))}
+    </div>
+  );
+}
+function Switch({ on, onChange }) {
+  return (
+    <button onClick={() => onChange(!on)} style={{
+      width: 50, height: 28, background: on ? T.accent : T.bg3, border: `1px solid ${T.line}`,
+      borderRadius: 999, position: "relative", padding: 0, transition: "background 0.2s",
+    }}>
+      <div style={{ width: 20, height: 20, background: T.cream, borderRadius: "50%",
+        position: "absolute", top: 3, left: on ? 26 : 3, transition: "left 0.2s" }} />
+    </button>
+  );
+}
+
+/* =========================================================================
+   WELCOME
+   ========================================================================= */
+function Welcome({ ctx }) {
+  const vp = useViewport();
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const padX = vp.isDesktop ? 60 : 26;
+  const factOfTheDay = useMemo(() => FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)], []);
+  const tipOfTheDay = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
+
+  return (
+    <div style={{ padding: `${vp.isDesktop ? 50 : 60}px ${padX}px 60px`, minHeight: "100vh",
+                  maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto", width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                    marginBottom: vp.isDesktop ? 50 : 70 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 24, height: 24, background: T.cream, borderRadius: 7,
+                        display: "grid", placeItems: "center", color: T.bg, fontSize: 12 }}>✿</div>
+          <div style={{ fontSize: 12, letterSpacing: "0.2em", color: T.creamDim }}>BLOOM <span style={{ color: T.accent }}>&</span> BREW</div>
+        </div>
+        {!vp.isDesktop && (
+          <button onClick={ctx.openSettings} style={iconBtn}><Settings size={16} color={T.cream} /></button>
+        )}
+      </div>
+
+      <div style={{ marginBottom: vp.isDesktop ? 50 : 50 }}>
+        <div style={{ fontSize: 13, color: T.creamDim, marginBottom: 12, letterSpacing: "0.1em" }}>
+          {greet}{ctx.settings?.name ? `, ${ctx.settings.name}` : ""}.
+        </div>
+        <div style={{ fontSize: vp.isDesktop ? 60 : 42, fontWeight: 200, lineHeight: 1.05,
+                      letterSpacing: "-0.02em" }}>
+          What are we{vp.isDesktop ? " " : <br/>}brewing today?
+        </div>
+      </div>
+
+      {vp.isDesktop ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 22, marginBottom: 22 }}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <button onClick={() => ctx.go("methods")} style={{
+              background: T.cream, color: T.bg, border: "none", padding: "30px 32px",
+              borderRadius: 22, display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.6 }}>Start</div>
+                <div style={{ fontSize: 32, fontWeight: 300, marginTop: 6 }}>New brew</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>Nine methods · Including milk drinks</div>
+              </div>
+              <ChevronRight size={28} />
+            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <DashCard onClick={() => ctx.go("journal")} icon={<Book size={18} />} label="Brew journal" sub={`${ctx.brewLog.length} logged`} />
+              <DashCard onClick={() => ctx.go("discover")} icon={<Compass size={18} />} label="Discover beans" sub="Indian roasters" />
+              <DashCard onClick={() => ctx.go("cafes")} icon={<MapPin size={18} />} label="Cafes near me" sub="Find a spot" />
+              <DashCard onClick={() => ctx.go("glossary")} icon={<Book size={18} />} label="Coffee glossary" sub="Learn the lingo" />
+              <DashCard onClick={() => ctx.go("submit")} icon={<Plus size={18} />} label="Add new recipe" sub="Share with us" />
+              <DashCard onClick={() => ctx.go("beans")} icon={<Coffee size={18} />} label="Bean Log" sub={`${ctx.beanLog.length} active`} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 14 }}>
+            <WeekStats />
+            <TipCard tip={tipOfTheDay} />
+            <FactCard fact={factOfTheDay} />
+          </div>
+        </div>
+      ) : (
+        <>
+          <button onClick={() => ctx.go("methods")} style={{
+            width: "100%", background: T.cream, color: T.bg, border: "none",
+            padding: "22px 26px", borderRadius: 18, display: "flex", justifyContent: "space-between",
+            alignItems: "center", marginBottom: 14,
+          }}>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.6 }}>Start</div>
+              <div style={{ fontSize: 22, fontWeight: 300, marginTop: 4 }}>New brew</div>
+            </div>
+            <ChevronRight size={22} />
+          </button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <DashCard onClick={() => ctx.go("journal")} icon={<Book size={18} />} label="Brew journal" sub={`${ctx.brewLog.length} logged`} />
+            <DashCard onClick={() => ctx.go("discover")} icon={<Compass size={18} />} label="Discover beans" sub="Indian roasters" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <DashCard onClick={() => ctx.go("cafes")} icon={<MapPin size={18} />} label="Cafes near me" sub="Find a spot" />
+            <DashCard onClick={() => ctx.go("glossary")} icon={<Book size={18} />} label="Glossary" sub="Coffee terms" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }}>
+            <DashCard onClick={() => ctx.go("beans")} icon={<Coffee size={18} />} label="Bean log" sub={`${ctx.beanLog.length} active`} />
+            <DashCard onClick={() => ctx.go("feed")} icon={<Users size={18} />} label="Community" sub="142 today" />
+          </div>
+          <div style={{ display: "grid", gap: 14, marginBottom: 22 }}>
+            <TipCard tip={tipOfTheDay} />
+            <FactCard fact={factOfTheDay} />
+          </div>
+          <WeekStats />
+        </>
+      )}
+    </div>
+  );
+}
+function DashCard({ icon, label, sub, onClick }) {
+  return (
+    <button onClick={onClick} style={{ background: T.bg2, border: `1px solid ${T.line}`,
+      borderRadius: 18, padding: 20, textAlign: "left", color: T.cream }}>
+      <div style={{ color: T.accent, marginBottom: 18 }}>{icon}</div>
+      <div style={{ fontSize: 15, fontWeight: 400 }}>{label}</div>
+      <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>{sub}</div>
+    </button>
+  );
+}
+function Stat({ n, l }) {
+  return (
+    <div>
+      <div style={{ fontSize: 26, fontWeight: 200 }}>{n}</div>
+      <div style={{ fontSize: 9, color: T.creamDim, letterSpacing: "0.15em", textTransform: "uppercase" }}>{l}</div>
+    </div>
+  );
+}
+function WeekStats() {
+  return (
+    <div style={{ border: `1px solid ${T.line}`, borderRadius: 18, padding: 22, background: T.bg2 }}>
+      <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 18 }}>THIS WEEK</div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
+        <Stat n="12" l="brews" /><Stat n="4.7" l="avg score" /><Stat n="3" l="methods" />
+      </div>
+      <div style={{ display: "flex", gap: 4, height: 50, alignItems: "flex-end" }}>
+        {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
+          <div key={i} style={{ flex: 1, background: i === 6 ? T.accent : T.brownDeep, height: `${h}%`, borderRadius: 2 }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+        {["M","T","W","T","F","S","S"].map((d, i) => (
+          <div key={i} style={{ flex: 1, fontSize: 9, color: T.creamDim, textAlign: "center" }}>{d}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function TipCard({ tip }) {
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Lightbulb size={14} color={T.accent} />
+        <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>TIP OF THE DAY</div>
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, color: T.cream }}>{tip}</div>
+    </div>
+  );
+}
+function FactCard({ fact }) {
+  return (
+    <div style={{ background: `linear-gradient(135deg, ${T.bg3}, ${T.bg2})`,
+                  border: `1px solid ${T.line}`, borderRadius: 18, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Sparkles size={14} color={T.accent} />
+        <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>FUN FACT</div>
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, color: T.cream, fontStyle: "italic" }}>"{fact}"</div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   METHODS
+   ========================================================================= */
+function Methods({ ctx }) {
+  const vp = useViewport();
+  const grouped = useMemo(() => {
+    const g = { filter: [], pressure: [], immersion: [], milk: [] };
+    METHODS.forEach((m) => g[m.category].push(m));
+    return g;
+  }, []);
+  const labels = { filter: "Filter", pressure: "Pressure", immersion: "Immersion", milk: "Milk drinks" };
+
+  return (
+    <div>
+      <Header title="Brewing Method" onBack={ctx.back} />
+      <div style={{ padding: "30px 22px 20px", maxWidth: vp.isDesktop ? 900 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 30, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Choose a method</div>
+        <div style={{ fontSize: 13, color: T.creamDim, marginBottom: 30 }}>Nine paths. One perfect cup.</div>
+
+        {Object.entries(grouped).map(([cat, methods]) => methods.length > 0 && (
+          <div key={cat} style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 12 }}>
+              {labels[cat].toUpperCase()}
+            </div>
+            <div style={{ display: "grid", gap: 12,
+                          gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+              {methods.map((m, i) => (
+                <button key={m.id} onClick={() => { ctx.setMethod(m); ctx.go("setup"); }}
+                  className="fade-up" style={{ display: "flex", alignItems: "center", gap: 18,
+                  padding: "20px 22px", background: T.bg2, border: `1px solid ${T.line}`,
+                  borderRadius: 16, color: T.cream, textAlign: "left", animationDelay: `${i * 50}ms` }}>
+                  <div style={{ width: 50, height: 50, borderRadius: 12, background: T.bg3,
+                    display: "grid", placeItems: "center", fontSize: 24, color: T.accent }}>{m.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 400, marginBottom: 4 }}>{m.name}</div>
+                    <div style={{ fontSize: 11, color: T.creamDim, display: "flex", gap: 12 }}>
+                      <span>{m.time}</span><span>·</span><span>{m.ratio}</span><span>·</span><span>{m.difficulty}</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} color={T.creamDim} />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   SETUP
+   ========================================================================= */
+function Setup({ ctx }) {
+  const [stage, setStage] = useState("grinder");
+  const vp = useViewport();
+  return (
+    <div>
+      <Header title={`${ctx.method?.name || "Setup"} — ${stage === "grinder" ? "1/2" : "2/2"}`} onBack={ctx.back} />
+      <div style={{ padding: "30px 22px", maxWidth: vp.isDesktop ? 700 : "none", margin: "0 auto" }}>
+        {stage === "grinder" && (<>
+          <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Your grinder</div>
+          <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>
+            We'll convert recipe grind sizes into clicks for your specific model.
+          </div>
+          <div style={{ display: "grid", gap: 10, marginBottom: 30 }}>
+            {GRINDERS.map((g) => {
+              const sel = ctx.grinder?.id === g.id;
+              return (
+                <button key={g.id} onClick={() => ctx.setGrinder(g)} style={{
+                  display: "flex", alignItems: "center", padding: "16px 18px",
+                  background: sel ? T.cream : T.bg2, color: sel ? T.bg : T.cream,
+                  border: `1px solid ${sel ? T.cream : T.line}`, borderRadius: 14, gap: 12 }}>
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    <div style={{ fontSize: 14 }}>{g.name}</div>
+                    <div style={{ fontSize: 10, opacity: 0.6, letterSpacing: "0.15em",
+                      textTransform: "uppercase", marginTop: 3 }}>{g.type}</div>
+                  </div>
+                  {sel && <Check size={16} />}
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => setStage("beans")} style={{ ...primaryBtn, width: "100%" }}>Continue</button>
+        </>)}
+        {stage === "beans" && (<>
+          <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Your beans</div>
+          <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>Pick from your log or scan a new bag.</div>
+          <button onClick={() => ctx.go("scan")} style={{ width: "100%", padding: "22px 22px",
+            border: `1px dashed ${T.line}`, background: T.bg2, color: T.cream, borderRadius: 14,
+            marginBottom: 18, display: "flex", alignItems: "center", gap: 14 }}>
+            <Camera size={18} color={T.accent} />
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 14 }}>Scan packaging</div>
+              <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>Auto-fill from photo</div>
+            </div>
+          </button>
+          <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 12 }}>FROM YOUR LOG</div>
+          <div style={{ display: "grid", gap: 10, marginBottom: 30 }}>
+            {ctx.beanLog.map((b, i) => {
+              const sel = ctx.bean?.name === b.name;
+              return (
+                <button key={i} onClick={() => ctx.setBean(b)} style={{ padding: "16px 18px",
+                  background: sel ? T.cream : T.bg2, color: sel ? T.bg : T.cream,
+                  border: `1px solid ${sel ? T.cream : T.line}`, borderRadius: 14, textAlign: "left" }}>
+                  <div style={{ fontSize: 14 }}>{b.name}</div>
+                  <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>
+                    {b.roaster} · {b.roast} · {b.notes}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => ctx.go("recipes")} disabled={!ctx.bean}
+            style={{ ...primaryBtn, width: "100%", opacity: ctx.bean ? 1 : 0.4 }}>See recipes</button>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   SCAN
+   ========================================================================= */
+function ScanBean({ ctx }) {
+  const [scanning, setScanning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [draft, setDraft] = useState({ name: "", roaster: "", roast: "Medium", notes: "", date: "Apr 15" });
+  const inputRef = useRef(null);
+  const onPick = (e) => {
+    if (!e.target.files?.[0]) return;
+    setScanning(true);
+    setTimeout(() => {
+      setDraft({ name: "Sidamo Natural", roaster: "Subko Coffee", roast: "Light-Medium",
+        notes: "Strawberry, cocoa, rose", date: "Apr 15" });
+      setScanning(false); setDone(true);
+    }, 2200);
+  };
+  const save = () => { ctx.setBeanLog([draft, ...ctx.beanLog]); ctx.setBean(draft); ctx.back(); };
+  return (
+    <div>
+      <Header title="Scan Beans" onBack={ctx.back} />
+      <div style={{ padding: "30px 22px", maxWidth: 600, margin: "0 auto" }}>
+        {!done && (
+          <div style={{ border: `1px solid ${T.line}`, borderRadius: 20, padding: "60px 24px",
+            textAlign: "center", background: T.bg2, position: "relative", overflow: "hidden" }}>
+            {scanning && <div style={{ position: "absolute", top: 0, left: 0, right: 0,
+              height: 2, background: T.accent, animation: "drip 1.5s linear infinite" }} />}
+            <div style={{ width: 90, height: 90, margin: "0 auto 24px", borderRadius: "50%",
+              border: `1px solid ${T.line}`, display: "grid", placeItems: "center", position: "relative" }}>
+              {scanning && <div style={{ position: "absolute", inset: -4, borderRadius: "50%",
+                border: `2px solid ${T.accent}`, animation: "pulse-ring 1.5s ease-out infinite" }} />}
+              <Camera size={28} color={T.accent} />
+            </div>
+            <div style={{ fontSize: 18, marginBottom: 6 }}>{scanning ? "Reading label..." : "Capture the bag"}</div>
+            <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 24 }}>
+              {scanning ? "Extracting roaster, origin, roast date" : "Point at the front label"}
+            </div>
+            {!scanning && (<>
+              <input ref={inputRef} type="file" accept="image/*" onChange={onPick} style={{ display: "none" }} />
+              <button onClick={() => inputRef.current?.click()} style={primaryBtn}>Open camera</button>
+            </>)}
+          </div>
+        )}
+        {done && (<>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.accent, marginBottom: 18 }}>
+            <Check size={16} /> <span style={{ fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>Detected</span>
+          </div>
+          <div style={{ display: "grid", gap: 14 }}>
+            {[["Bean","name"],["Roaster","roaster"],["Roast","roast"],["Tasting notes","notes"]].map(([label, key]) => (
+              <div key={key}>
+                <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 6 }}>{label.toUpperCase()}</div>
+                <input value={draft[key]} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} style={input} />
+              </div>
+            ))}
+          </div>
+          <button onClick={save} style={{ ...primaryBtn, width: "100%", marginTop: 26 }}>Save bean</button>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   RECIPE LIST
+   ========================================================================= */
+/* =========================================================================
+   FLAVOR MATCHING ENGINE
+   ========================================================================= */
+// Map common flavor descriptors to a "profile" — numbers 0-10 on each axis.
+// The matcher reads your text, builds your ideal profile, scores each recipe.
+const FLAVOR_KEYWORDS = {
+  // Sweet / sugary
+  sweet: { sweetness: +3, bitterness: -1 },
+  sugary: { sweetness: +3 },
+  caramel: { sweetness: +2, body: +1 },
+  honey: { sweetness: +2, acidity: +1 },
+  chocolate: { sweetness: +2, body: +2, bitterness: +1 },
+  cocoa: { body: +2, bitterness: +1 },
+  vanilla: { sweetness: +2 },
+  nutty: { body: +2, sweetness: +1 },
+  almond: { body: +1, sweetness: +1 },
+  // Fruity / bright
+  fruity: { acidity: +3, sweetness: +1 },
+  fruit: { acidity: +2, sweetness: +1 },
+  berry: { acidity: +3, sweetness: +1 },
+  strawberry: { acidity: +2, sweetness: +2 },
+  blueberry: { acidity: +3, sweetness: +1 },
+  citrus: { acidity: +3 },
+  lemon: { acidity: +3 },
+  orange: { acidity: +2, sweetness: +1 },
+  bergamot: { acidity: +2 },
+  tropical: { acidity: +3, sweetness: +2 },
+  mango: { acidity: +2, sweetness: +2 },
+  peach: { acidity: +1, sweetness: +2 },
+  wine: { acidity: +2, body: +1 },
+  juicy: { acidity: +2, sweetness: +1 },
+  bright: { acidity: +3 },
+  crisp: { acidity: +2 },
+  // Floral
+  floral: { acidity: +2, aftertaste: +1 },
+  jasmine: { acidity: +2, aftertaste: +1 },
+  tea: { body: -1, aftertaste: +2 },
+  delicate: { body: -1, acidity: +1 },
+  light: { body: -2, acidity: +1 },
+  // Bold / heavy
+  bold: { body: +3, bitterness: +1 },
+  strong: { body: +3 },
+  heavy: { body: +3 },
+  full: { body: +2 },
+  rich: { body: +2, sweetness: +1 },
+  robust: { body: +2, bitterness: +1 },
+  bitter: { bitterness: +3 },
+  dark: { body: +2, bitterness: +2 },
+  smoky: { bitterness: +2, body: +1 },
+  earthy: { body: +2, bitterness: +1 },
+  // Balance / smooth
+  balanced: { sweetness: +1, acidity: 0, body: +1 },
+  smooth: { bitterness: -2, body: +1 },
+  clean: { bitterness: -1, aftertaste: +1 },
+  mellow: { acidity: -2, bitterness: -1 },
+  creamy: { body: +2, sweetness: +1 },
+  silky: { body: +1, aftertaste: +1 },
+  // Avoid
+  sour: { acidity: -3 },
+  weak: { body: -3 },
+  thin: { body: -3 },
+  watery: { body: -3 },
+  harsh: { bitterness: -2 },
+  ashy: { bitterness: -3 },
+};
+
+// Each recipe has an implied flavor profile based on its parameters.
+// We approximate it: ratio → strength/body; temp → brightness; method → clarity vs body.
+function recipeProfile(recipe, methodId) {
+  const ratio = recipe.water / recipe.dose;
+  const p = { sweetness: 5, acidity: 5, body: 5, bitterness: 5, aftertaste: 5 };
+
+  // Ratio: tighter ratio = stronger, more body, more bitterness
+  if (ratio < 13) { p.body += 3; p.bitterness += 2; p.sweetness -= 1; }
+  else if (ratio < 15) { p.body += 1; p.bitterness += 1; }
+  else if (ratio > 17) { p.body -= 2; p.acidity += 1; }
+
+  // Temp: hotter = more extraction of everything including bitters
+  if (recipe.temp >= 96) { p.acidity += 1; p.bitterness += 1; p.sweetness += 1; }
+  else if (recipe.temp <= 90) { p.acidity -= 2; p.sweetness += 1; p.bitterness -= 1; }
+
+  // Method-specific characteristics
+  const byMethod = {
+    v60: { acidity: +2, aftertaste: +2, body: -1 },            // clean, bright, defined
+    chemex: { acidity: +1, aftertaste: +2, body: -2 },         // very clean, tea-like
+    aeropress: { body: +1, sweetness: +1, bitterness: -1 },    // smooth, forgiving
+    french: { body: +3, bitterness: +1, aftertaste: -1 },      // rich, sedimented
+    moka: { body: +2, bitterness: +2, sweetness: -1 },         // intense, dark
+    espresso: { body: +3, bitterness: +2, sweetness: +1 },     // concentrated
+    latte: { body: +2, sweetness: +2, bitterness: -2, acidity: -2 },
+    cappuccino: { body: +2, sweetness: +2, bitterness: -1, acidity: -1 },
+    flatwhite: { body: +2, sweetness: +1, bitterness: -1, acidity: -1 },
+  };
+  const mod = byMethod[methodId] || {};
+  Object.entries(mod).forEach(([k, v]) => { p[k] = Math.max(0, Math.min(10, p[k] + v)); });
+
+  // Clamp all
+  Object.keys(p).forEach((k) => { p[k] = Math.max(0, Math.min(10, p[k])); });
+  return p;
+}
+
+function parseFlavorText(text) {
+  const t = text.toLowerCase();
+  const delta = { sweetness: 0, acidity: 0, body: 0, bitterness: 0, aftertaste: 0 };
+  const matched = [];
+  Object.entries(FLAVOR_KEYWORDS).forEach(([word, effects]) => {
+    // Match whole-ish words (avoid partial matches like "lemon" in "melon")
+    const re = new RegExp(`\\b${word}\\b`, "i");
+    if (re.test(t)) {
+      matched.push(word);
+      Object.entries(effects).forEach(([axis, v]) => { delta[axis] += v; });
+    }
+  });
+  // Build target profile around neutral 5
+  const target = {};
+  Object.entries(delta).forEach(([k, v]) => { target[k] = Math.max(0, Math.min(10, 5 + v)); });
+  return { target, matched, delta };
+}
+
+function scoreRecipeAgainstTarget(recipe, methodId, target) {
+  const profile = recipeProfile(recipe, methodId);
+  let distance = 0;
+  Object.keys(target).forEach((k) => {
+    distance += Math.pow(profile[k] - target[k], 2);
+  });
+  // Quality tiebreaker — higher rating wins ties
+  const ratingBoost = (recipe.rating - 4.0) * 0.5;
+  return { score: -Math.sqrt(distance) + ratingBoost, profile };
+}
+
+function findBestRecipes(target, methodId, topN = 3) {
+  // Search ALL recipes across ALL methods if methodId not provided,
+  // otherwise limit to the chosen method
+  const pool = [];
+  Object.entries(RECIPES).forEach(([mId, recipes]) => {
+    if (methodId && mId !== methodId) return;
+    recipes.forEach((r) => {
+      const { score, profile } = scoreRecipeAgainstTarget(r, mId, target);
+      pool.push({ recipe: r, methodId: mId, score, profile });
+    });
+  });
+  pool.sort((a, b) => b.score - a.score);
+  return pool.slice(0, topN);
+}
+
+/* =========================================================================
+   RECIPE LIST
+   ========================================================================= */
+function RecipeList({ ctx }) {
+  const vp = useViewport();
+  const list = RECIPES[ctx.method?.id] || [];
+  const [flavorOpen, setFlavorOpen] = useState(false);
+  const [flavorText, setFlavorText] = useState("");
+  const [flavorResults, setFlavorResults] = useState(null);
+
+  const pickRandom = () => { if (!list.length) return; const r = list[Math.floor(Math.random() * list.length)]; ctx.setRecipe(r); ctx.go("brew"); };
+  const pickAuto = () => { if (!list.length) return; const sorted = [...list].sort((a, b) => b.rating - a.rating); ctx.setRecipe(sorted[0]); ctx.go("brew"); };
+
+  const findByFlavor = () => {
+    if (!flavorText.trim()) return;
+    const parsed = parseFlavorText(flavorText);
+    const results = findBestRecipes(parsed.target, ctx.method?.id, 3);
+    setFlavorResults({ parsed, results });
+  };
+
+  const suggestions = [
+    "bright and fruity",
+    "bold and chocolatey",
+    "smooth with low acidity",
+    "floral and delicate",
+    "creamy and sweet",
+  ];
+
+  return (
+    <div>
+      <Header title={`Top Recipes — ${ctx.method?.name}`} onBack={ctx.back}
+        right={<button onClick={() => ctx.go("submit")} style={iconBtn}><Plus size={16} color={T.cream} /></button>} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 20, letterSpacing: "0.1em" }}>
+          {ctx.bean?.name} · {ctx.grinder?.name}
+        </div>
+
+        {/* FLAVOR FINDER — hero card */}
+        <div style={{
+          background: `linear-gradient(135deg, ${T.bg3}, ${T.bg2})`,
+          border: `1px solid ${flavorOpen ? T.accent : T.line}`,
+          borderRadius: 16, padding: flavorOpen ? 22 : 18, marginBottom: 14,
+          transition: "all 0.3s ease",
+        }}>
+          {!flavorOpen ? (
+            <button onClick={() => setFlavorOpen(true)} style={{
+              width: "100%", background: "none", border: "none", color: T.cream,
+              display: "flex", alignItems: "center", gap: 14, textAlign: "left", padding: 0,
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.bg3,
+                            border: `1px solid ${T.line}`, display: "grid", placeItems: "center",
+                            color: T.accent, flexShrink: 0 }}>
+                <Sparkles size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, marginBottom: 3 }}>What flavour are you after?</div>
+                <div style={{ fontSize: 11, color: T.creamDim }}>Describe it — we'll match a recipe</div>
+              </div>
+              <ChevronRight size={16} color={T.creamDim} />
+            </button>
+          ) : (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Sparkles size={14} color={T.accent} />
+                  <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>FLAVOUR FINDER</div>
+                </div>
+                <button onClick={() => { setFlavorOpen(false); setFlavorResults(null); setFlavorText(""); }}
+                        style={{ background: "none", border: "none", color: T.creamDim }}>
+                  <X size={16} color={T.creamDim} />
+                </button>
+              </div>
+
+              <div style={{ fontSize: 17, fontWeight: 300, marginBottom: 14, color: T.cream, lineHeight: 1.4 }}>
+                Describe your ideal cup
+              </div>
+
+              <textarea value={flavorText} onChange={(e) => setFlavorText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); findByFlavor(); } }}
+                        placeholder="e.g. bright, fruity, with berry notes and low bitterness"
+                        style={{ ...input, minHeight: 70, resize: "none", marginBottom: 12 }} />
+
+              {/* Suggestion chips */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                {suggestions.map((s) => (
+                  <button key={s} onClick={() => setFlavorText(s)} style={{
+                    padding: "6px 12px", background: T.bg3, border: `1px solid ${T.line}`,
+                    borderRadius: 999, color: T.creamDim, fontSize: 11, fontFamily: FONT,
+                  }}>{s}</button>
+                ))}
+              </div>
+
+              <button onClick={findByFlavor} disabled={!flavorText.trim()} style={{
+                ...primaryBtn, width: "100%", opacity: flavorText.trim() ? 1 : 0.4,
+              }}>Find matching recipes</button>
+
+              {/* Results */}
+              {flavorResults && (
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${T.line}` }}>
+                  {flavorResults.parsed.matched.length > 0 ? (
+                    <>
+                      <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 8 }}>
+                        READING
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                        {flavorResults.parsed.matched.map((m) => (
+                          <Pill key={m}>{m}</Pill>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 14, fontStyle: "italic" }}>
+                      Couldn't pick out specific flavour words. Showing our best guesses.
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 10 }}>
+                    BEST MATCHES
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {flavorResults.results.map((match, i) => {
+                      const r = match.recipe;
+                      const m = METHODS.find((x) => x.id === match.methodId);
+                      return (
+                        <button key={r.id} onClick={() => {
+                          ctx.setMethod(m); ctx.setRecipe(r); ctx.go("brew");
+                        }} style={{
+                          padding: "14px 16px", background: T.bg2,
+                          border: `1px solid ${i === 0 ? T.accent : T.line}`,
+                          borderRadius: 12, color: T.cream, textAlign: "left",
+                          display: "flex", gap: 12, alignItems: "center",
+                        }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: T.bg3,
+                                        display: "grid", placeItems: "center", fontSize: 11,
+                                        color: T.accent, flexShrink: 0 }}>0{i + 1}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13 }}>{r.title}</div>
+                            <div style={{ fontSize: 10, color: T.creamDim, marginTop: 2 }}>
+                              {m.name} · {r.author}
+                            </div>
+                          </div>
+                          {i === 0 && <Pill>Best</Pill>}
+                          <ChevronRight size={14} color={T.creamDim} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 22 }}>
+          <button onClick={pickRandom} style={{
+            padding: "16px 18px", background: T.bg2, border: `1px solid ${T.line}`,
+            borderRadius: 14, color: T.cream, display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: T.bg3,
+                          display: "grid", placeItems: "center", color: T.accent, flexShrink: 0 }}>
+              <Shuffle size={15} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13 }}>Surprise me</div>
+              <div style={{ fontSize: 10, color: T.creamDim, marginTop: 2 }}>Random recipe</div>
+            </div>
+          </button>
+          <button onClick={pickAuto} style={{
+            padding: "16px 18px", background: T.bg2, border: `1px solid ${T.line}`,
+            borderRadius: 14, color: T.cream, display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: T.bg3,
+                          display: "grid", placeItems: "center", color: T.accent, flexShrink: 0 }}>
+              <Sparkles size={15} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13 }}>Auto-choose</div>
+              <div style={{ fontSize: 10, color: T.creamDim, marginTop: 2 }}>Best for your beans</div>
+            </div>
+          </button>
+        </div>
+        <div style={{ display: "grid", gap: 12,
+                      gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+          {list.map((r, i) => (
+            <button key={r.id} onClick={() => { ctx.setRecipe(r); ctx.go("brew"); }}
+              className="fade-up" style={{ padding: "20px 20px", background: T.bg2,
+              border: `1px solid ${T.line}`, borderRadius: 16, color: T.cream,
+              textAlign: "left", display: "flex", gap: 16, animationDelay: `${i * 40}ms` }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: T.bg3,
+                display: "grid", placeItems: "center", fontSize: 12, color: T.accent, flexShrink: 0 }}>0{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, marginBottom: 4 }}>{r.title}</div>
+                <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 10 }}>{r.author}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <Pill>{r.dose}g</Pill><Pill>{r.water}g water</Pill>
+                  <Pill>{r.temp}°C</Pill><Pill dim>★ {r.rating}</Pill>
+                  {r.hasMilk && <Pill>+ Milk</Pill>}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   PRE-BREW CHECKLISTS — method-specific setup rituals
+   ========================================================================= */
+const PRE_BREW = {
+  v60: {
+    title: "Before you pour",
+    note: "The fundamentals that separate a good V60 from a great one.",
+    steps: [
+      { title: "Boil fresh water", desc: "Filtered or mineral water. Never use previously-boiled water — it's flat." },
+      { title: "Fold your filter", desc: "Fold along the seam, then open into a cone. Seat firmly in the dripper." },
+      { title: "Rinse the filter", desc: "Pour hot water through the filter until fully saturated. This removes paper taste AND pre-heats the dripper and server. Discard the rinse water." },
+      { title: "Warm your cup", desc: "Pour some of that rinse water into your cup too. A cold cup drops brew temp fast." },
+      { title: "Weigh and grind", desc: "Weigh your dose, then grind right before brewing. Ground coffee loses aroma within minutes." },
+      { title: "Add grounds to dripper", desc: "Level the bed with a gentle tap or shake. An even bed = an even extraction." },
+      { title: "Place on scale", desc: "Tare the scale to zero with everything in place. You're ready." },
+    ],
+  },
+  chemex: {
+    title: "Before you pour",
+    note: "Chemex filters are 20-30% thicker than V60 — rinsing is non-negotiable.",
+    steps: [
+      { title: "Boil fresh water", desc: "Filtered water, freshly boiled. Chemex benefits from slightly hotter water (96°C)." },
+      { title: "Unfold the filter", desc: "Thick side (3 layers) against the pour spout — this keeps the filter from collapsing." },
+      { title: "Rinse thoroughly", desc: "Use ~300ml of hot water. Chemex paper is thick and needs real rinsing to remove the cardboard taste." },
+      { title: "Discard rinse water", desc: "Pour out through the spout — it also warms the flask." },
+      { title: "Weigh and grind", desc: "Use a medium-coarse grind, a touch coarser than V60." },
+      { title: "Add grounds and level", desc: "Gently tap to settle. With Chemex you want a flat, even bed." },
+      { title: "Tare the scale", desc: "Everything on the scale, zeroed out." },
+    ],
+  },
+  aeropress: {
+    title: "Before you press",
+    note: "Aeropress is forgiving, but these details still matter.",
+    steps: [
+      { title: "Boil water", desc: "Most Aeropress recipes use cooler water (80-90°C) than pourovers. Let it rest 30-60s off the boil." },
+      { title: "Choose orientation", desc: "Standard (upright) or inverted? This recipe uses whichever the author specified." },
+      { title: "Rinse the filter", desc: "Place paper filter in the cap, rinse with hot water. Quick step but removes paper taste." },
+      { title: "Attach the cap", desc: "Screw on tightly — it should be snug but not cranked." },
+      { title: "Weigh and grind", desc: "Medium-fine grind, similar to table salt. Finer for shorter steeps, coarser for longer." },
+      { title: "Add grounds", desc: "Funnel the grounds in. Tap the side to settle them evenly." },
+      { title: "Pre-wet the grounds", desc: "Optional but recommended: a quick bloom with a splash of water, stir once, wait 10s. Evens the extraction." },
+    ],
+  },
+  french: {
+    title: "Before you steep",
+    note: "French Press is about immersion — get the prep right and it runs itself.",
+    steps: [
+      { title: "Boil water", desc: "Fresh, filtered. French Press likes 93-96°C." },
+      { title: "Pre-heat the carafe", desc: "Pour hot water into the empty press, swirl, discard. A cold glass carafe drops temp by 5-8°C." },
+      { title: "Weigh and grind", desc: "Coarse grind — like rough sea salt. Too fine and you'll get sludge and bitterness." },
+      { title: "Add grounds to carafe", desc: "Pour them in, give the press a gentle tap to level." },
+      { title: "Position the plunger", desc: "Place it on top (don't push down yet). This traps heat during steep." },
+      { title: "Have your timer ready", desc: "French Press needs precise timing — 4 minutes is the standard." },
+    ],
+  },
+  moka: {
+    title: "Before you heat",
+    note: "Moka pots reward patience. The whole ritual takes 6-8 minutes.",
+    steps: [
+      { title: "Start with hot water", desc: "Counter-intuitive but crucial: use pre-heated water in the bottom chamber. This prevents grounds from cooking and getting bitter." },
+      { title: "Fill to the valve", desc: "Water level just below the safety valve. Never above." },
+      { title: "Insert the funnel", desc: "The metal filter basket sits on top of the water chamber." },
+      { title: "Grind medium-fine", desc: "Finer than filter, coarser than espresso. Think table salt." },
+      { title: "Fill the basket", desc: "Level with the rim — don't tamp. Tamping causes pressure build-up and bitterness." },
+      { title: "Screw tightly", desc: "Use a towel if the base is hot. A loose seal leaks steam and ruins extraction." },
+      { title: "Medium heat, lid open", desc: "Watch the coffee stream. You want a steady honey-coloured pour, not a violent sputter." },
+    ],
+  },
+  espresso: {
+    title: "Before you pull",
+    note: "Espresso is the least forgiving brew method. Every variable matters.",
+    steps: [
+      { title: "Warm the machine", desc: "15-20 minutes minimum. Group head, portafilter, cup — all need to be hot." },
+      { title: "Flush the group", desc: "Run a 2-3 second flush to stabilise temperature and clean any old grounds." },
+      { title: "Weigh your dose", desc: "Exactly — espresso is sensitive to 0.1g differences. Follow the recipe." },
+      { title: "Grind fresh", desc: "Directly into the portafilter. Espresso grind should look like fine powder, almost like flour." },
+      { title: "Distribute and level", desc: "Tap, WDT (weiss distribution technique), or swirl to break up clumps. Uneven distribution = channeling." },
+      { title: "Tamp evenly", desc: "Consistent pressure, level tamp. About 15-20kg of force — the exact number matters less than consistency." },
+      { title: "Lock and brew immediately", desc: "Don't let the portafilter sit in the group head. The hot metal starts extracting before water hits." },
+    ],
+  },
+  latte: {
+    title: "Before you pour",
+    note: "Great latte = great espresso + great milk texture. Both need prep.",
+    steps: [
+      { title: "Warm the machine", desc: "15+ minutes. Especially the steam wand and boiler." },
+      { title: "Warm your cup", desc: "Rinse with hot water. A cold ceramic cup kills the foam texture in seconds." },
+      { title: "Pour cold milk", desc: "Fresh, cold, whole milk from the fridge. Cold milk gives you more time to texture before it overheats." },
+      { title: "Purge the steam wand", desc: "Before AND after. Blast steam to clear condensation and old milk residue." },
+      { title: "Prep espresso gear", desc: "Grind, distribute, tamp. Pull the shot directly into the warmed cup." },
+      { title: "Position the wand", desc: "Just below the milk surface, slightly off-center. This is where microfoam happens." },
+    ],
+  },
+  cappuccino: {
+    title: "Before you pour",
+    note: "Cappuccino is all about the foam — stretch harder, texture longer.",
+    steps: [
+      { title: "Warm the machine and cup", desc: "15+ minutes for the machine. Cup warmed with hot water." },
+      { title: "Cold milk, smaller pitcher", desc: "Use a 12oz pitcher for a single cappuccino — a bigger one won't let you control the foam." },
+      { title: "Purge the wand", desc: "Steam blast, wipe clean." },
+      { title: "Pull the espresso shot", desc: "Straight into the warmed cup. Thick crema is the base you'll pour onto." },
+      { title: "Stretching is key", desc: "Unlike latte, you want the 'tssss' sound for the first 5-8 seconds — that's air incorporating into foam." },
+    ],
+  },
+  flatwhite: {
+    title: "Before you pour",
+    note: "Silky microfoam, no dry foam. It's all in the texturing.",
+    steps: [
+      { title: "Warm everything", desc: "Machine, cup, and the flat white cup should all be hot." },
+      { title: "Cold, fresh whole milk", desc: "Whole milk only — lower fat content won't produce proper velvet microfoam." },
+      { title: "Purge the steam wand", desc: "Clean and ready." },
+      { title: "Pull a double ristretto", desc: "Shorter shot than a latte — around 36g out for 18g in. More concentrated flavour." },
+      { title: "Texture minimally", desc: "Brief stretching — just 2-3 seconds of air. Then spin deep to polish. No visible bubbles, ever." },
+    ],
+  },
+};
+const DEFAULT_PRE_BREW = {
+  title: "Before you brew",
+  note: "The small rituals that stack into a better cup.",
+  steps: [
+    { title: "Use fresh water", desc: "Filtered, freshly boiled. Water quality is 98% of your cup." },
+    { title: "Pre-heat your vessel", desc: "Rinse with hot water to warm it up. Cold equipment drops brew temp fast." },
+    { title: "Weigh your coffee", desc: "Always weigh. Eyeballing is the #1 cause of inconsistent brews." },
+    { title: "Grind fresh", desc: "Grind right before brewing — pre-ground loses 60% of aroma in 15 minutes." },
+    { title: "Tare your scale", desc: "Zero everything out with the vessel and grounds in place." },
+  ],
+};
+
+function PreBrewChecklist({ methodId }) {
+  const data = PRE_BREW[methodId] || DEFAULT_PRE_BREW;
+  const [checked, setChecked] = useState({});
+  const [expanded, setExpanded] = useState(true);
+
+  const completedCount = Object.values(checked).filter(Boolean).length;
+  const allDone = completedCount === data.steps.length;
+
+  return (
+    <div style={{
+      background: T.bg2, border: `1px solid ${allDone ? T.accent : T.line}`, borderRadius: 14,
+      marginBottom: 18, overflow: "hidden", transition: "border-color 0.3s",
+    }}>
+      <button onClick={() => setExpanded(!expanded)} style={{
+        width: "100%", padding: "18px 22px", background: "none", border: "none",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        color: T.cream, textAlign: "left",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+            background: allDone ? T.accent : T.bg3,
+            color: allDone ? T.bg : T.accent,
+            display: "grid", placeItems: "center",
+          }}>
+            {allDone ? <Check size={14} color={T.bg} /> : <Lightbulb size={14} />}
+          </div>
+          <div>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 3 }}>PREP CHECKLIST</div>
+            <div style={{ fontSize: 14 }}>{data.title}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 11, color: T.creamDim }}>{completedCount}/{data.steps.length}</div>
+          <div style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>
+            <ChevronRight size={14} color={T.creamDim} />
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: "0 22px 20px", borderTop: `1px solid ${T.line}` }}>
+          <div style={{ fontSize: 12, color: T.creamDim, fontStyle: "italic",
+                        padding: "14px 0 16px", lineHeight: 1.5 }}>
+            {data.note}
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {data.steps.map((s, i) => {
+              const isChecked = !!checked[i];
+              return (
+                <button key={i} onClick={() => setChecked({ ...checked, [i]: !isChecked })} style={{
+                  display: "flex", gap: 12, padding: "12px 14px",
+                  background: isChecked ? T.bg3 : "transparent",
+                  border: `1px solid ${isChecked ? T.accent : T.line}`,
+                  borderRadius: 10, color: T.cream, textAlign: "left",
+                  transition: "all 0.2s",
+                }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                    border: `1.5px solid ${isChecked ? T.accent : T.creamDim}`,
+                    background: isChecked ? T.accent : "transparent",
+                    display: "grid", placeItems: "center",
+                  }}>
+                    {isChecked && <Check size={11} color={T.bg} strokeWidth={3} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, marginBottom: 3,
+                                  textDecoration: isChecked ? "line-through" : "none",
+                                  opacity: isChecked ? 0.5 : 1 }}>
+                      {i + 1}. {s.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.creamDim, lineHeight: 1.5 }}>{s.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   BREW
+   ========================================================================= */
+function Brew({ ctx }) {
+  const r = ctx.recipe;
+  const vp = useViewport();
+
+  // SCALING — number of cups (1 = original)
+  const [cups, setCups] = useState(1);
+  const scale = cups; // simple multiplier
+
+  const scaled = useMemo(() => ({
+    dose: Math.round(r.dose * scale * 10) / 10,
+    water: Math.round(r.water * scale),
+    milk: r.milk ? Math.round(r.milk * scale) : 0,
+    temp: r.temp,
+    microns: r.microns,
+  }), [r, scale]);
+
+  // Step times scale slightly with volume (more water = longer pour time)
+  const timeScale = Math.sqrt(scale); // sqrt feels right — doubling volume ≠ doubling time
+  const baseSteps = r?.steps?.length ? r.steps : defaultSteps(r);
+  const steps = useMemo(() => baseSteps.map((s) => ({
+    ...s,
+    t: Math.round(s.t * timeScale),
+    pour: Math.round(s.pour * scale),
+    desc: scaleDesc(s.desc, scale),
+  })), [baseSteps, scale, timeScale]);
+
+  const totalTime = steps.length ? steps[steps.length - 1].t + Math.round(60 * timeScale) : 210;
+
+  const [phase, setPhase] = useState("pre");
+  const [t, setT] = useState(0);
+  const [music, setMusic] = useState(false);
+
+  useEffect(() => {
+    if (phase !== "brewing") return;
+    const id = setInterval(() => {
+      setT((x) => {
+        if (x + 1 >= totalTime) { clearInterval(id); setPhase("done"); return totalTime; }
+        return x + 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase, totalTime]);
+
+  const currentIdx = steps.reduce((acc, s, i) => (t >= s.t ? i : acc), 0);
+  const current = steps[currentIdx];
+  const next = steps[currentIdx + 1];
+  const progress = Math.min(t / totalTime, 1);
+
+  // Grinder clicks scale slightly with volume (slightly coarser for bigger brews — known principle)
+  const adjMicrons = Math.round(scaled.microns * (1 + (scale - 1) * 0.05));
+  const clicks = useMemo(() => {
+    if (!ctx.grinder || !r) return 0;
+    const raw = adjMicrons * ctx.grinder.clicksPerMicron;
+    // Most grinders work in whole clicks. Comandante & 1Zpresso support half-clicks; round to nearest 0.5.
+    // Everything else rounds to whole clicks.
+    const supportsHalf = ["c40", "jx", "k6"].includes(ctx.grinder.id);
+    return supportsHalf ? Math.round(raw * 2) / 2 : Math.round(raw);
+  }, [ctx.grinder, r, adjMicrons]);
+
+  if (phase === "pre") {
+    return (
+      <div>
+        <Header title="Get Ready" onBack={ctx.back} />
+        <div style={{ padding: "30px 22px", maxWidth: vp.isDesktop ? 700 : "none", margin: "0 auto" }}>
+          <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>{r.title}</div>
+          <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 22 }}>{r.author}</div>
+
+          {/* SERVINGS SCROLLER */}
+          <div style={{
+            background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 16,
+            padding: "18px 22px", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 4 }}>SERVINGS</div>
+              <div style={{ fontSize: 22, fontWeight: 300 }}>{cups} cup{cups > 1 ? "s" : ""}</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button onClick={() => setCups(Math.max(0.5, +(cups - 0.5).toFixed(1)))} style={{
+                width: 38, height: 38, borderRadius: 999, border: `1px solid ${T.line}`,
+                background: T.bg3, color: T.cream, display: "grid", placeItems: "center",
+              }}><Minus size={14} color={T.cream} /></button>
+              <button onClick={() => setCups(Math.min(8, +(cups + 0.5).toFixed(1)))} style={{
+                width: 38, height: 38, borderRadius: 999, border: `1px solid ${T.line}`,
+                background: T.bg3, color: T.cream, display: "grid", placeItems: "center",
+              }}><Plus size={14} color={T.cream} /></button>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <PrepCard icon={<Scale size={16} />} label="Dose" v={`${scaled.dose} g`} sub={ctx.bean?.name} />
+            <PrepCard icon={<Droplet size={16} />} label="Water" v={`${scaled.water} g`} sub={`Ratio 1:${Math.round(scaled.water/scaled.dose)}`} />
+            <PrepCard icon={<Flame size={16} />} label="Temp" v={`${scaled.temp}°C`} sub="Heat kettle now" />
+            <PrepCard icon={<Disc3 size={16} />} label="Grind" v={`${clicks} clicks`} sub={ctx.grinder?.name} />
+            {r.hasMilk && (
+              <PrepCard icon={<Coffee size={16} />} label="Milk" v={`${scaled.milk} g`} sub="Steamed, ~60°C" />
+            )}
+          </div>
+
+          <div style={{
+            background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14,
+            padding: 18, marginTop: 18, marginBottom: 18,
+          }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 12 }}>SCHEDULE</div>
+            {steps.map((s, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0",
+                borderBottom: i < steps.length - 1 ? `1px solid ${T.line}` : "none" }}>
+                <span style={{ fontSize: 13 }}>{s.label}</span>
+                <span style={{ fontSize: 12, color: T.creamDim }}>{fmt(s.t)}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 6,
+              borderTop: `1px solid ${T.line}`, fontSize: 11, color: T.accent }}>
+              <span>Total</span><span>{fmt(totalTime)}</span>
+            </div>
+          </div>
+
+          {/* PRE-BREW CHECKLIST */}
+          <PreBrewChecklist methodId={ctx.method?.id} />
+
+          <button onClick={() => setPhase("brewing")} style={{ ...primaryBtn, width: "100%", marginTop: 8 }}>Start brewing</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: `radial-gradient(ellipse at top, ${T.bg2}, ${T.bg})` }}>
+      <Header title="Brewing" onBack={() => { setPhase("pre"); setT(0); }}
+        right={<button onClick={() => setMusic(!music)} style={{ ...iconBtn,
+          background: music ? T.accent : "transparent", borderColor: music ? T.accent : T.line }}>
+          <Music size={14} color={music ? T.bg : T.cream} /></button>} />
+      <div style={{ maxWidth: vp.isDesktop ? 700 : "none", margin: "0 auto" }}>
+        <div style={{ padding: "30px 22px 10px", position: "relative" }}>
+          <BrewScene method={ctx.method?.id} phase={phase} stepLabel={current?.label} progress={progress} hasMilk={r.hasMilk} />
+        </div>
+        <div style={{ padding: "20px 22px 8px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: (next && phase === "brewing") ? "1fr 1px 1fr" : "1fr",
+            gap: 20, alignItems: "center",
+          }}>
+            {/* Elapsed time */}
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: T.creamDim, letterSpacing: "0.3em", marginBottom: 6 }}>ELAPSED</div>
+              <div style={{ fontSize: (next && phase === "brewing") ? 48 : 64,
+                            fontWeight: 100, letterSpacing: "-0.04em", color: T.cream,
+                            lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(t)}</div>
+              <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.2em", marginTop: 6 }}>OF {fmt(totalTime)}</div>
+            </div>
+
+            {/* Divider */}
+            {next && phase === "brewing" && (
+              <div style={{ width: 1, height: 80, background: T.line, justifySelf: "center" }} />
+            )}
+
+            {/* Next step countdown */}
+            {next && phase === "brewing" && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: T.accent, letterSpacing: "0.3em", marginBottom: 6 }}>NEXT IN</div>
+                <div style={{ fontSize: 48, fontWeight: 100, letterSpacing: "-0.04em",
+                              color: T.accent, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                  {fmt(Math.max(0, next.t - t))}
+                </div>
+                <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.15em",
+                              marginTop: 6, textTransform: "uppercase",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {next.label}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: "20px 22px" }}>
+          <div style={{ height: 2, background: T.line, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ width: `${progress * 100}%`, height: "100%", background: T.accent, transition: "width 0.5s linear" }} />
+          </div>
+        </div>
+        <div style={{ padding: "10px 22px 20px" }}>
+          <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <Pill>STEP {currentIdx + 1} / {steps.length}</Pill>
+              {phase === "brewing" && <PulseDot />}
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 300, letterSpacing: "-0.01em" }}>{current?.label}</div>
+            <div style={{ fontSize: 14, color: T.creamDim, marginTop: 6 }}>{current?.desc}</div>
+          </div>
+        </div>
+        {music && <JazzWidget />}
+        {phase === "done" && (
+          <DoneScreen ctx={ctx} recipe={r} scaled={scaled} clicks={clicks}
+                      onReset={() => { setT(0); setPhase("pre"); ctx.back(); }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DoneScreen({ ctx, recipe, scaled, clicks, onReset }) {
+  const vp = useViewport();
+  const [overall, setOverall] = useState(7);
+  const [saved, setSaved] = useState(false);
+
+  const stashBrew = () => {
+    window.__pendingBrew = {
+      recipeId: recipe.id, recipeTitle: recipe.title, method: ctx.method?.id,
+      bean: ctx.bean?.name || "Unknown", grinder: ctx.grinder?.name || "Unknown",
+      dose: scaled.dose, water: scaled.water, temp: scaled.temp, clicks,
+    };
+  };
+
+  const quickSave = () => {
+    // Save a minimal entry with just the overall rating
+    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    ctx.setBrewLog([{
+      id: Date.now(),
+      recipeId: recipe.id, recipeTitle: recipe.title, method: ctx.method?.id,
+      bean: ctx.bean?.name || "Unknown", grinder: ctx.grinder?.name || "Unknown",
+      date: today,
+      dose: scaled.dose, water: scaled.water, temp: scaled.temp, clicks,
+      scores: { sweetness: 5, acidity: 5, body: 5, bitterness: 5, aftertaste: 5, overall },
+      notes: "",
+      quickLogged: true,
+    }, ...ctx.brewLog]);
+    setSaved(true);
+  };
+
+  const detailedLog = () => {
+    stashBrew();
+    ctx.go("logbrew");
+  };
+
+  if (saved) {
+    return (
+      <div style={{ padding: "20px 22px 30px", textAlign: "center" }}>
+        <Check size={28} color={T.accent} />
+        <div style={{ fontSize: 18, fontWeight: 200, marginBottom: 6, marginTop: 12 }}>Saved to your profile</div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 22 }}>
+          View it anytime in your Brew Journal.
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => ctx.go("journal")} style={{ ...ghostBtn, flex: 1 }}>View journal</button>
+          <button onClick={onReset} style={{ ...primaryBtn, flex: 1 }}>Done</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "10px 22px 30px" }}>
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <Sparkles size={28} color={T.accent} />
+        <div style={{ fontSize: 24, fontWeight: 200, marginBottom: 6, marginTop: 10 }}>Your cup is ready</div>
+        <div style={{ fontSize: 12, color: T.creamDim }}>How was it?</div>
+      </div>
+
+      {/* Quick overall rating — always visible */}
+      <div style={{
+        background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 16,
+        padding: 22, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 4 }}>OVERALL RATING</div>
+            <div style={{ fontSize: 12, color: T.creamDim }}>Quick score — 1 tap</div>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 200, color: T.accent }}>{overall}<span style={{ color: T.creamDim, fontSize: 16 }}>/10</span></div>
+        </div>
+        <input type="range" min="1" max="10" value={overall}
+               onChange={(e) => setOverall(+e.target.value)}
+               style={{ width: "100%", accentColor: T.accent }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: T.creamDim, marginTop: 4, letterSpacing: "0.15em" }}>
+          <span>UNDRINKABLE</span><span>PERFECT</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "grid", gap: 10 }}>
+        <button onClick={quickSave} style={{ ...primaryBtn, width: "100%" }}>
+          Save to profile
+        </button>
+        <button onClick={detailedLog} style={{ ...ghostBtn, width: "100%" }}>
+          Rate in detail (5 axes + notes)
+        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => ctx.go("feed")} style={{
+            flex: 1, background: "transparent", border: "none", color: T.creamDim,
+            fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", padding: 12,
+          }}>Share</button>
+          <button onClick={onReset} style={{
+            flex: 1, background: "transparent", border: "none", color: T.creamDim,
+            fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", padding: 12,
+          }}>Skip</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function defaultSteps(r) {
+  return [
+    { t: 0, label: "Bloom", desc: `Pour ${Math.round(r.water * 0.2)}g water, swirl gently`, pour: Math.round(r.water * 0.2) },
+    { t: 45, label: "Pour 1", desc: `Pour to ${Math.round(r.water * 0.5)}g`, pour: Math.round(r.water * 0.3) },
+    { t: 90, label: "Pour 2", desc: `Pour to ${r.water}g`, pour: Math.round(r.water * 0.5) },
+    { t: 150, label: "Drawdown", desc: "Wait — let it finish", pour: 0 },
+  ];
+}
+function scaleDesc(desc, scale) {
+  if (scale === 1) return desc;
+  return desc.replace(/(\d+)g/g, (m, n) => `${Math.round(+n * scale)}g`);
+}
+
+function PrepCard({ icon, label, v, sub }) {
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14, padding: 16 }}>
+      <div style={{ color: T.accent, marginBottom: 12 }}>{icon}</div>
+      <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim }}>{label.toUpperCase()}</div>
+      <div style={{ fontSize: 22, fontWeight: 300, marginTop: 4 }}>{v}</div>
+      {sub && <div style={{ fontSize: 10, color: T.creamDim, marginTop: 6, overflow: "hidden",
+        textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
+    </div>
+  );
+}
+function PulseDot() {
+  return (
+    <div style={{ position: "relative", width: 10, height: 10 }}>
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.accent,
+        animation: "pulse-ring 1.5s ease-out infinite" }} />
+      <div style={{ position: "absolute", inset: 2, borderRadius: "50%", background: T.accent }} />
+    </div>
+  );
+}
+function fmt(s) { const m = Math.floor(s / 60), sec = s % 60; return `${m}:${String(sec).padStart(2, "0")}`; }
+
+/* =========================================================================
+   BREW SCENE — switches based on method
+   ========================================================================= */
+function BrewScene({ method, phase, stepLabel, progress, hasMilk }) {
+  const sceneProps = { phase, stepLabel, progress };
+  let Scene;
+  if (method === "aeropress") Scene = AeropressScene;
+  else if (method === "french") Scene = FrenchPressScene;
+  else if (method === "moka") Scene = MokaScene;
+  else if (method === "espresso") Scene = EspressoScene;
+  else if (method === "chemex") Scene = ChemexScene;
+  else if (hasMilk || ["latte","cappuccino","flatwhite"].includes(method)) Scene = MilkScene;
+  else Scene = PourOverScene; // v60 default
+
+  return (
+    <div style={{
+      position: "relative", width: "100%", aspectRatio: "1.4",
+      background: `linear-gradient(180deg, ${T.bg3}, ${T.bg2})`,
+      border: `1px solid ${T.line}`, borderRadius: 20, overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: "30%", height: 1, background: T.line }} />
+      <div style={{ position: "absolute", top: 0, right: "20%", width: 1, height: 50, background: T.line }} />
+      <div style={{ position: "absolute", top: 46, right: "calc(20% - 8px)", width: 18, height: 18,
+                    borderRadius: "50%", background: T.accent, opacity: 0.7,
+                    boxShadow: `0 0 30px ${T.accent}` }} />
+      <Scene {...sceneProps} />
+      <div style={{ position: "absolute", top: 16, left: 16, fontSize: 9,
+                    letterSpacing: "0.3em", color: T.creamDim }}>● LIVE</div>
+      <div style={{ position: "absolute", top: 16, right: 16, fontSize: 9,
+                    letterSpacing: "0.3em", color: T.creamDim }}>{(method || "v60").toUpperCase()}</div>
+    </div>
+  );
+}
+
+function PourOverScene({ phase, stepLabel, progress }) {
+  const isBlooming = stepLabel?.toLowerCase().includes("bloom");
+  const isPouring = stepLabel?.toLowerCase().includes("pour") || isBlooming;
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      <g transform="translate(70, 80)" opacity={isPouring ? 1 : 0.4}>
+        <path d="M 0 30 L 0 60 Q 0 80 20 80 L 60 80 Q 80 80 80 60 L 80 30 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <path d="M 30 30 L 30 15 Q 30 8 38 8 L 50 8 Q 58 8 58 15 L 58 30" fill="none" stroke={T.cream} strokeWidth="1.5" />
+        <path d="M 80 40 Q 110 40 115 60" fill="none" stroke={T.cream} strokeWidth="1.5" />
+        {isPouring && (
+          <line x1="118" y1="62" x2="135" y2="105" stroke={T.accent} strokeWidth="2" opacity="0.8">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="0.8s" repeatCount="indefinite" />
+          </line>
+        )}
+      </g>
+      <g transform="translate(170, 110)">
+        <path d="M 0 0 L 80 0 L 55 50 L 25 50 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <ellipse cx="40" cy="0" rx="40" ry="6" fill={T.espresso} />
+        {isBlooming && (<>
+          <ellipse cx="40" cy="-2" rx="36" ry="5" fill={T.brown} opacity="0.7">
+            <animate attributeName="ry" values="5;8;5" dur="2s" repeatCount="indefinite" />
+          </ellipse>
+          {[0,1,2,3,4].map((i) => (
+            <circle key={i} cx={20 + i*10} cy="-4" r="2" fill={T.brown} opacity="0.6">
+              <animate attributeName="cy" values="-4;-10;-4" dur={`${1.5 + i*0.2}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+        </>)}
+        {isPouring && (
+          <line x1="40" y1="50" x2="40" y2="80" stroke={T.brown} strokeWidth="1.5" opacity="0.7">
+            <animate attributeName="y2" values="55;90;55" dur="0.6s" repeatCount="indefinite" />
+          </line>
+        )}
+        <path d="M 5 80 L 75 80 L 70 130 Q 70 140 60 140 L 20 140 Q 10 140 10 130 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <rect x="11" y={140 - 60 * progress} width="58" height={60 * progress} fill={T.brownDeep} opacity="0.9" />
+      </g>
+      {phase === "brewing" && [0, 1, 2].map((i) => (
+        <circle key={i} cx={210 + i * 18} cy="100" r="3" fill={T.cream} opacity="0">
+          <animate attributeName="opacity" values="0;0.4;0" dur="2s" begin={`${i * 0.5}s`} repeatCount="indefinite" />
+          <animate attributeName="cy" values="100;60;40" dur="2s" begin={`${i * 0.5}s`} repeatCount="indefinite" />
+        </circle>
+      ))}
+    </svg>
+  );
+}
+
+function ChemexScene({ phase, stepLabel, progress }) {
+  const isPouring = stepLabel?.toLowerCase().includes("pour") || stepLabel?.toLowerCase().includes("bloom");
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      {/* Chemex hourglass shape */}
+      <g transform="translate(150, 60)">
+        {/* Top funnel */}
+        <path d="M 10 0 L 90 0 L 60 60 L 40 60 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        {/* Wooden collar */}
+        <rect x="35" y="62" width="30" height="14" fill={T.brown} opacity="0.7" />
+        <rect x="35" y="62" width="30" height="14" fill="none" stroke={T.cream} strokeWidth="1" />
+        {/* Bottom bulb */}
+        <path d="M 40 76 L 60 76 L 90 160 Q 90 180 75 180 L 25 180 Q 10 180 10 160 Z"
+              fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        {/* Coffee in bottom */}
+        <path d={`M 12 ${180 - 90 * progress} Q 12 180 25 180 L 75 180 Q 88 180 88 ${180 - 90 * progress} Z`}
+              fill={T.brownDeep} opacity="0.9" />
+        {/* Grounds in funnel */}
+        <ellipse cx="50" cy="6" rx="38" ry="4" fill={T.espresso} />
+        {/* Pour stream */}
+        {isPouring && (
+          <line x1="50" y1="0" x2="50" y2="-30" stroke={T.accent} strokeWidth="2" opacity="0.8">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="0.8s" repeatCount="indefinite" />
+          </line>
+        )}
+        {/* Drip */}
+        {isPouring && (
+          <line x1="50" y1="60" x2="50" y2="76" stroke={T.brown} strokeWidth="1.5" opacity="0.7">
+            <animate attributeName="opacity" values="0;1;0" dur="0.6s" repeatCount="indefinite" />
+          </line>
+        )}
+      </g>
+      {/* Kettle */}
+      <g transform="translate(60, 30)" opacity={isPouring ? 1 : 0.4}>
+        <path d="M 0 20 L 0 40 Q 0 50 10 50 L 50 50 Q 60 50 60 40 L 60 20 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+        <path d="M 60 25 Q 90 25 95 40" fill="none" stroke={T.cream} strokeWidth="1.2" />
+      </g>
+    </svg>
+  );
+}
+
+function AeropressScene({ phase, stepLabel, progress }) {
+  const isPressing = stepLabel?.toLowerCase().includes("press");
+  const isPouring = stepLabel?.toLowerCase().includes("pour");
+  const isSteeping = stepLabel?.toLowerCase().includes("steep");
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      {/* Aeropress chamber */}
+      <g transform="translate(160, 60)">
+        {/* Plunger */}
+        <g style={{ transform: isPressing ? `translateY(${progress * 50}px)` : "none", transition: "transform 1s linear" }}>
+          <rect x="20" y="-20" width="40" height="20" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+          <rect x="35" y="-50" width="10" height="30" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+          {/* Plunger seal */}
+          <rect x="22" y="0" width="36" height="8" fill={T.brown} opacity="0.8" />
+        </g>
+        {/* Main chamber */}
+        <rect x="20" y="10" width="40" height="120" fill="none" stroke={T.cream} strokeWidth="1.5" />
+        {/* Water/coffee inside */}
+        <rect x="22" y={isSteeping || isPressing ? 12 : 60} width="36"
+              height={isSteeping || isPressing ? 116 : (60 + progress * 60)}
+              fill={T.brownDeep} opacity="0.85" />
+        {/* Bubbles when steeping */}
+        {isSteeping && [0, 1, 2, 3].map((i) => (
+          <circle key={i} cx={28 + i * 8} cy="100" r="2" fill={T.cream} opacity="0.4">
+            <animate attributeName="cy" values="120;30;120" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0;0.5;0" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
+        {/* Filter cap */}
+        <rect x="18" y="130" width="44" height="8" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+        {/* Drip into mug */}
+        {isPressing && (
+          <line x1="40" y1="138" x2="40" y2="160" stroke={T.brown} strokeWidth="2" opacity="0.8">
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="0.4s" repeatCount="indefinite" />
+          </line>
+        )}
+      </g>
+      {/* Mug */}
+      <g transform="translate(165, 220)">
+        <path d="M 0 0 L 70 0 L 65 30 Q 65 38 57 38 L 13 38 Q 5 38 5 30 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <rect x="3" y="2" width="64" height={26 * progress} fill={T.brownDeep} opacity="0.9" />
+        <path d="M 70 8 Q 82 8 82 18 Q 82 28 70 28" fill="none" stroke={T.cream} strokeWidth="1.5" />
+      </g>
+      {/* Pour stream */}
+      {isPouring && (
+        <line x1="200" y1="40" x2="200" y2="70" stroke={T.accent} strokeWidth="2">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="0.6s" repeatCount="indefinite" />
+        </line>
+      )}
+    </svg>
+  );
+}
+
+function FrenchPressScene({ phase, stepLabel, progress }) {
+  const isPressing = stepLabel?.toLowerCase().includes("press") || progress > 0.7;
+  const isSteeping = stepLabel?.toLowerCase().includes("steep") || (progress > 0.1 && progress < 0.7);
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      <g transform="translate(140, 50)">
+        {/* Carafe */}
+        <rect x="0" y="20" width="120" height="180" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" rx="4" />
+        {/* Handle */}
+        <path d="M 120 60 Q 145 60 145 100 Q 145 140 120 140" fill="none" stroke={T.cream} strokeWidth="2" />
+        {/* Coffee fill */}
+        <rect x="3" y="30" width="114" height="167" fill={T.brownDeep} opacity="0.85" />
+        {/* Plunger rod */}
+        <line x1="60" y1={isPressing ? 60 + progress * 40 : 0} x2="60" y2="-40"
+              stroke={T.cream} strokeWidth="2" />
+        {/* Plunger handle */}
+        <circle cx="60" cy="-44" r="8" fill={T.cream} />
+        {/* Mesh filter */}
+        <g style={{ transform: `translateY(${isPressing ? progress * 100 : 30}px)`, transition: "transform 1.5s ease" }}>
+          <rect x="6" y="0" width="108" height="6" fill={T.brown} opacity="0.7" />
+          <rect x="6" y="0" width="108" height="6" fill="none" stroke={T.cream} strokeWidth="1" />
+        </g>
+        {/* Floating grounds when steeping */}
+        {isSteeping && [0, 1, 2, 3, 4, 5].map((i) => (
+          <circle key={i} cx={20 + i * 16} cy={50 + (i % 2) * 20} r="2" fill={T.espresso} opacity="0.7">
+            <animate attributeName="cy" values={`${50 + (i % 2) * 20};${30 + (i % 2) * 20};${50 + (i % 2) * 20}`}
+                     dur={`${3 + i * 0.4}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+function MokaScene({ phase, stepLabel, progress }) {
+  const isErupting = progress > 0.6;
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      <g transform="translate(150, 50)">
+        {/* Top chamber (octagonal silhouette simplified) */}
+        <path d="M 20 60 L 80 60 L 90 80 L 90 130 L 75 145 L 25 145 L 10 130 L 10 80 Z"
+              fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        {/* Coffee filling top */}
+        {isErupting && (
+          <path d={`M 12 ${145 - 60 * (progress - 0.6) / 0.4} L 88 ${145 - 60 * (progress - 0.6) / 0.4} L 88 144 L 12 144 Z`}
+                fill={T.brownDeep} opacity="0.9" />
+        )}
+        {/* Spout */}
+        <path d="M 50 60 L 45 50 L 55 50 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+        {/* Steam from spout */}
+        {isErupting && [0, 1, 2].map((i) => (
+          <circle key={i} cx={50 + i * 4 - 4} cy="40" r="3" fill={T.cream} opacity="0">
+            <animate attributeName="opacity" values="0;0.5;0" dur="1.5s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+            <animate attributeName="cy" values="40;15;0" dur="1.5s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
+        {/* Handle */}
+        <path d="M 90 90 Q 120 90 120 110 Q 120 130 90 130" fill="none" stroke={T.cream} strokeWidth="2" />
+        {/* Connector */}
+        <rect x="35" y="145" width="30" height="6" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+        {/* Bottom chamber */}
+        <path d="M 15 151 L 85 151 L 90 215 L 10 215 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        {/* Water in bottom */}
+        <rect x="13" y={155 + 55 * progress} width="74" height={55 * (1 - progress)} fill={T.brown} opacity="0.6" />
+        {/* Stovetop flame */}
+        <g transform="translate(35, 220)">
+          {[0, 1, 2, 3].map((i) => (
+            <path key={i} d={`M ${i * 8} 0 Q ${i * 8 + 4} -10 ${i * 8 + 8} 0`}
+                  fill={T.accent} opacity="0.7">
+              <animate attributeName="opacity" values="0.5;0.9;0.5" dur={`${0.5 + i * 0.1}s`} repeatCount="indefinite" />
+            </path>
+          ))}
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+function EspressoScene({ phase, stepLabel, progress }) {
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      {/* Group head */}
+      <g transform="translate(160, 40)">
+        <rect x="20" y="0" width="60" height="40" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" rx="4" />
+        {/* Portafilter */}
+        <rect x="30" y="40" width="40" height="20" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <line x1="70" y1="50" x2="100" y2="55" stroke={T.cream} strokeWidth="2" />
+        <circle cx="105" cy="56" r="6" fill={T.brown} opacity="0.7" />
+        {/* Spouts */}
+        <rect x="36" y="60" width="6" height="10" fill={T.bg3} stroke={T.cream} strokeWidth="1" />
+        <rect x="58" y="60" width="6" height="10" fill={T.bg3} stroke={T.cream} strokeWidth="1" />
+        {/* Espresso streams */}
+        {progress > 0 && progress < 1 && (<>
+          <line x1="39" y1="70" x2="39" y2="130" stroke={T.brownDeep} strokeWidth="2" opacity="0.9">
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="0.4s" repeatCount="indefinite" />
+          </line>
+          <line x1="61" y1="70" x2="61" y2="130" stroke={T.brownDeep} strokeWidth="2" opacity="0.9">
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="0.4s" repeatCount="indefinite" />
+          </line>
+        </>)}
+        {/* Crema gradient */}
+        <defs>
+          <linearGradient id="crema" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={T.accent} stopOpacity="0.9" />
+            <stop offset="100%" stopColor={T.brownDeep} stopOpacity="1" />
+          </linearGradient>
+        </defs>
+        {/* Shot glasses */}
+        <g transform="translate(15, 130)">
+          <path d="M 10 0 L 35 0 L 33 50 L 12 50 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+          <rect x="11" y={50 - 45 * progress} width="23" height={45 * progress} fill="url(#crema)" />
+        </g>
+        <g transform="translate(45, 130)">
+          <path d="M 10 0 L 35 0 L 33 50 L 12 50 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.2" />
+          <rect x="11" y={50 - 45 * progress} width="23" height={45 * progress} fill="url(#crema)" />
+        </g>
+      </g>
+      {/* Pressure gauge */}
+      <g transform="translate(80, 90)">
+        <circle cx="0" cy="0" r="20" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <line x1="0" y1="0" x2={Math.cos((progress * Math.PI - Math.PI/4)) * 14}
+                            y2={Math.sin((progress * Math.PI - Math.PI/4)) * 14}
+              stroke={T.accent} strokeWidth="2" />
+        <circle cx="0" cy="0" r="2" fill={T.accent} />
+        <text x="0" y="32" textAnchor="middle" fill={T.creamDim} fontSize="7" letterSpacing="2">9 BAR</text>
+      </g>
+    </svg>
+  );
+}
+
+function MilkScene({ phase, stepLabel, progress }) {
+  const isPullingShot = stepLabel?.toLowerCase().includes("shot") || stepLabel?.toLowerCase().includes("ristretto") || progress < 0.2;
+  const isSteaming = stepLabel?.toLowerCase().includes("steam") || stepLabel?.toLowerCase().includes("velvet") || (progress >= 0.2 && progress < 0.6);
+  const isPouring = stepLabel?.toLowerCase().includes("pour") || stepLabel?.toLowerCase().includes("layer") || progress >= 0.6;
+
+  return (
+    <svg viewBox="0 0 400 280" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+      <defs>
+        <linearGradient id="milkfill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={T.milk} />
+          <stop offset="100%" stopColor={T.brown} stopOpacity="0.6" />
+        </linearGradient>
+      </defs>
+
+      {/* Steam wand (left) */}
+      <g transform="translate(50, 30)" opacity={isSteaming ? 1 : 0.3}>
+        <line x1="20" y1="0" x2="20" y2="60" stroke={T.cream} strokeWidth="2" />
+        <rect x="15" y="60" width="10" height="14" fill={T.bg3} stroke={T.cream} strokeWidth="1" />
+        {isSteaming && [0, 1, 2].map((i) => (
+          <circle key={i} cx={20 + (i - 1) * 4} cy="80" r="2" fill={T.cream} opacity="0">
+            <animate attributeName="opacity" values="0;0.6;0" dur="1.2s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
+            <animate attributeName="cy" values="80;100;120" dur="1.2s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
+          </circle>
+        ))}
+      </g>
+
+      {/* Milk pitcher (left mid) */}
+      <g transform="translate(40, 95)" opacity={isSteaming || isPouring ? 1 : 0.4}>
+        <path d="M 0 0 L 60 0 L 55 60 Q 55 70 45 70 L 15 70 Q 5 70 5 60 Z"
+              fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <path d="M 60 10 L 75 0 L 75 15 Z" fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        <rect x="6" y={isSteaming ? 5 : 10} width="48" height={isSteaming ? 60 : 55} fill="url(#milkfill)" opacity="0.85" />
+        {/* Swirl */}
+        {isSteaming && (
+          <circle cx="30" cy="35" r="18" fill="none" stroke={T.cream} strokeWidth="1" opacity="0.4"
+                  strokeDasharray="4 4" style={{ transformOrigin: "30px 35px", animation: "milk-swirl 3s linear infinite" }} />
+        )}
+        {/* Pour stream from pitcher */}
+        {isPouring && (
+          <line x1="75" y1="14" x2="155" y2="120" stroke={T.milk} strokeWidth="2.5" opacity="0.9">
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="0.5s" repeatCount="indefinite" />
+          </line>
+        )}
+      </g>
+
+      {/* Cup (center-right) */}
+      <g transform="translate(200, 100)">
+        <path d="M 0 0 L 100 0 L 92 90 Q 92 105 78 105 L 22 105 Q 8 105 8 90 Z"
+              fill={T.bg3} stroke={T.cream} strokeWidth="1.5" />
+        {/* Saucer */}
+        <ellipse cx="50" cy="115" rx="65" ry="6" fill={T.bg3} stroke={T.cream} strokeWidth="1" />
+        {/* Handle */}
+        <path d="M 100 20 Q 130 20 130 50 Q 130 80 100 80" fill="none" stroke={T.cream} strokeWidth="1.5" />
+
+        {/* Espresso base */}
+        {(isPullingShot || progress > 0.05) && (
+          <rect x="10" y={progress < 0.2 ? 80 - 70 * (progress / 0.2) : 10}
+                width="80"
+                height={progress < 0.2 ? 70 * (progress / 0.2) : 30}
+                fill={T.espresso} opacity="0.95" />
+        )}
+        {/* Milk layer */}
+        {isPouring && (
+          <rect x="10" y={40 - 30 * ((progress - 0.6) / 0.4)}
+                width="80"
+                height={30 + 30 * ((progress - 0.6) / 0.4)}
+                fill="url(#milkfill)" opacity="0.85" />
+        )}
+        {/* Latte art (rosetta dots) */}
+        {progress > 0.9 && (<>
+          <ellipse cx="50" cy="20" rx="14" ry="3" fill={T.cream} opacity="0.8" />
+          <ellipse cx="50" cy="26" rx="18" ry="3" fill={T.cream} opacity="0.7" />
+          <ellipse cx="50" cy="32" rx="20" ry="3" fill={T.cream} opacity="0.6" />
+          <ellipse cx="50" cy="38" rx="14" ry="2" fill={T.cream} opacity="0.5" />
+        </>)}
+      </g>
+
+      {/* Pulling shot indicator */}
+      {isPullingShot && progress < 0.15 && (
+        <g transform="translate(250, 50)">
+          <rect x="0" y="0" width="40" height="20" rx="4" fill="none" stroke={T.cream} strokeWidth="1" />
+          <line x1="10" y1="20" x2="10" y2="40" stroke={T.brownDeep} strokeWidth="2">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="0.4s" repeatCount="indefinite" />
+          </line>
+          <line x1="30" y1="20" x2="30" y2="40" stroke={T.brownDeep} strokeWidth="2">
+            <animate attributeName="opacity" values="0.4;1;0.4" dur="0.4s" repeatCount="indefinite" />
+          </line>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function JazzWidget() {
+  return (
+    <div style={{ padding: "0 22px 20px" }}>
+      <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14,
+        padding: 14, display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 42, height: 42, borderRadius: "50%",
+          background: `radial-gradient(circle, ${T.brownDeep}, ${T.bg})`,
+          border: `1px solid ${T.line}`, animation: "spin-slow 4s linear infinite",
+          display: "grid", placeItems: "center" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.cream }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13 }}>Smooth Brew Sessions</div>
+          <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.1em" }}>FUNKY JAZZ · 3:42</div>
+        </div>
+        <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 24 }}>
+          {[0,1,2,3].map((i) => (
+            <div key={i} style={{ width: 3, background: T.accent, borderRadius: 2,
+              animation: `bar 0.${6 + i}s ease-in-out infinite alternate` }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   FEED
+   ========================================================================= */
+function Feed({ ctx }) {
+  const vp = useViewport();
+  const [posts, setPosts] = useState(FEED);
+  const [composing, setComposing] = useState(false);
+  return (
+    <div>
+      <Header title="Community" right={<button onClick={() => setComposing(true)} style={iconBtn}><Plus size={16} color={T.cream} /></button>} />
+      <div style={{ padding: "20px 22px", maxWidth: vp.isDesktop ? 700 : "none", margin: "0 auto" }}>
+        {composing && <Composer onCancel={() => setComposing(false)}
+          onPost={(c) => { setPosts([{ id: Date.now(), user: ctx.settings?.name?.toLowerCase() || "you", time: "now",
+            caption: c, likes: 0, comments: 0, hue: 35 }, ...posts]); setComposing(false); }} />}
+        <div style={{ display: "grid", gap: 18 }}>
+          {posts.map((p) => <Post key={p.id} p={p} onLike={() => {
+            setPosts((arr) => arr.map((x) => x.id === p.id ? { ...x, likes: x.likes + 1 } : x));
+          }} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+function Post({ p, onLike }) {
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 18, overflow: "hidden" }}>
+      <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: "50%",
+          background: `hsl(${p.hue}, 30%, 30%)`, color: T.cream,
+          display: "grid", placeItems: "center", fontSize: 11 }}>{p.user[0].toUpperCase()}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13 }}>{p.user}</div>
+          <div style={{ fontSize: 10, color: T.creamDim }}>{p.time} ago</div>
+        </div>
+      </div>
+      <div style={{ aspectRatio: "1.1", background: `radial-gradient(ellipse at 30% 30%, hsl(${p.hue}, 40%, 25%), ${T.bg})`,
+        position: "relative", display: "grid", placeItems: "center" }}>
+        <Coffee size={40} color={T.creamDim} strokeWidth={1} />
+      </div>
+      <div style={{ padding: "14px 16px" }}>
+        <div style={{ fontSize: 13, marginBottom: 12 }}>{p.caption}</div>
+        <div style={{ display: "flex", gap: 18, color: T.creamDim, fontSize: 12 }}>
+          <button onClick={onLike} style={{ background: "none", border: "none", color: T.creamDim,
+            display: "flex", gap: 6, alignItems: "center", padding: 0 }}>
+            <Heart size={14} /> {p.likes}
+          </button>
+          <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <MessageCircle size={14} /> {p.comments}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Composer({ onCancel, onPost }) {
+  const [c, setC] = useState("");
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, marginBottom: 18 }}>
+      <textarea value={c} onChange={(e) => setC(e.target.value)} placeholder="What's brewing?"
+        style={{ ...input, minHeight: 80, resize: "none" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, alignItems: "center" }}>
+        <button style={{ ...iconBtn, width: "auto", padding: "0 14px", height: 34, gap: 6,
+          display: "flex", alignItems: "center" }}>
+          <ImageIcon size={14} color={T.cream} /><span style={{ fontSize: 11 }}>Photo</span>
+        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onCancel} style={{ ...ghostBtn, padding: "10px 18px" }}>Cancel</button>
+          <button onClick={() => c.trim() && onPost(c)} style={{ ...primaryBtn, padding: "10px 18px" }}>Post</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   BEAN LOG
+   ========================================================================= */
+function BeansLog({ ctx }) {
+  const vp = useViewport();
+  return (
+    <div>
+      <Header title="Bean Log" right={<button onClick={() => ctx.go("scan")} style={iconBtn}><Camera size={16} color={T.cream} /></button>} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Your beans</div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>{ctx.beanLog.length} in rotation</div>
+        <div style={{ display: "grid", gap: 12,
+                      gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+          {ctx.beanLog.map((b, i) => (
+            <div key={i} style={{ padding: 18, background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div style={{ fontSize: 16 }}>{b.name}</div>
+                <Pill dim>{b.date}</Pill>
+              </div>
+              <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 10 }}>{b.roaster} · {b.roast}</div>
+              <div style={{ fontSize: 12, color: T.cream, fontStyle: "italic" }}>"{b.notes}"</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   SUBMIT
+   ========================================================================= */
+function SubmitRecipe({ ctx }) {
+  const vp = useViewport();
+  const [f, setF] = useState({ title: "", method: ctx.method?.id || "", dose: "", water: "", temp: "", notes: "" });
+  const [sent, setSent] = useState(false);
+  const submit = () => { setSent(true); setTimeout(() => ctx.back(), 1200); };
+  const valid = f.title.trim() && f.method;
+  return (
+    <div>
+      <Header title="Submit Recipe" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 720 : "none", margin: "0 auto" }}>
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <Award size={36} color={T.accent} />
+            <div style={{ fontSize: 20, marginTop: 16 }}>Submitted</div>
+            <div style={{ fontSize: 12, color: T.creamDim, marginTop: 6 }}>The community will love this.</div>
+          </div>
+        ) : (<>
+          <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Share your recipe</div>
+          <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>
+            {ctx.method?.name ? `For ${ctx.method.name}` : "Pick a method below"}
+          </div>
+          {!ctx.method && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 10 }}>BREWING METHOD</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                {METHODS.map((m) => (
+                  <button key={m.id} onClick={() => setF({ ...f, method: m.id })} style={{
+                    padding: "12px 8px", background: f.method === m.id ? T.cream : T.bg2,
+                    color: f.method === m.id ? T.bg : T.cream,
+                    border: `1px solid ${f.method === m.id ? T.cream : T.line}`,
+                    borderRadius: 12, fontSize: 11, fontFamily: FONT,
+                  }}>{m.name}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={{ display: "grid", gap: 14, gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+            {[
+              ["Recipe title","title", true],
+              ["Dose (g)","dose", false],
+              ["Water (g)","water", false],
+              ["Temp (°C)","temp", false],
+              ["Notes & method","notes", true],
+            ].map(([label, key, full]) => (
+              <div key={key} style={{ gridColumn: full && vp.isDesktop ? "span 2" : "auto" }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 6 }}>{label.toUpperCase()}</div>
+                {key === "notes" ?
+                  <textarea value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })}
+                    style={{ ...input, minHeight: 120, resize: "none" }} /> :
+                  <input value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })} style={input} />}
+              </div>
+            ))}
+          </div>
+          <button onClick={submit} disabled={!valid} style={{
+            ...primaryBtn, width: "100%", marginTop: 26, opacity: valid ? 1 : 0.4,
+          }}>Submit</button>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   CAFES — with click-through to maps
+   ========================================================================= */
+const CAFES_DATA = [
+  { name: "Third Wave Coffee", area: "Indiranagar", dist: "0.4 km", rating: 4.6, tags: ["V60","Espresso","Light Roast"] },
+  { name: "Subko Coffee Roasters", area: "Koramangala", dist: "1.2 km", rating: 4.8, tags: ["Single Origin","Pourover"] },
+  { name: "Blue Tokai", area: "Indiranagar", dist: "0.8 km", rating: 4.5, tags: ["Roastery","Filter"] },
+  { name: "Maverick & Farmer", area: "Kalyan Nagar", dist: "2.1 km", rating: 4.7, tags: ["Specialty","Brunch"] },
+  { name: "Dope Coffee", area: "HSR Layout", dist: "3.4 km", rating: 4.6, tags: ["Espresso","Pastries"] },
+  { name: "Araku Coffee", area: "Lavelle Road", dist: "4.2 km", rating: 4.5, tags: ["Single Estate","Cold Brew"] },
+];
+
+function Cafes({ ctx }) {
+  const vp = useViewport();
+  const [locating, setLocating] = useState(true);
+  const [location, setLocation] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setError("Geolocation not supported"); setLocating(false); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); },
+      () => { setError("Showing demo cafes — enable location for nearby results"); setLocating(false); },
+      { timeout: 6000 }
+    );
+  }, []);
+
+  const openInMaps = (cafe) => {
+    const q = encodeURIComponent(`${cafe.name} ${cafe.area} Bangalore`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+  };
+
+  return (
+    <div>
+      <Header title="Cafes Near Me" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Specialty coffee</div>
+            <div style={{ fontSize: 12, color: T.creamDim }}>
+              {locating ? "Finding cafes near you..." : (location ? "Sorted by distance · tap to navigate" : "Demo locations · tap to open in Maps")}
+            </div>
+          </div>
+          <div style={{ color: T.accent }}><MapPin size={20} /></div>
+        </div>
+
+        {error && (
+          <div style={{ background: T.bg2, border: `1px dashed ${T.line}`, padding: "12px 16px",
+                        borderRadius: 12, fontSize: 11, color: T.creamDim, marginBottom: 18 }}>
+            {error}
+          </div>
+        )}
+
+        {locating ? (
+          <div style={{ padding: "60px 0", textAlign: "center" }}>
+            <div style={{ width: 40, height: 40, margin: "0 auto", borderRadius: "50%",
+                          border: `2px solid ${T.line}`, borderTopColor: T.accent,
+                          animation: "spin-slow 0.9s linear infinite" }} />
+            <div style={{ fontSize: 12, color: T.creamDim, marginTop: 16, letterSpacing: "0.1em" }}>
+              SCANNING THE NEIGHBORHOOD
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 12,
+                        gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+            {CAFES_DATA.map((c, i) => (
+              <button key={i} onClick={() => openInMaps(c)} className="fade-up" style={{
+                padding: "20px 22px", background: T.bg2, border: `1px solid ${T.line}`,
+                borderRadius: 16, animationDelay: `${i * 50}ms`, color: T.cream, textAlign: "left",
+                fontFamily: FONT, cursor: "pointer", transition: "border-color 0.2s",
+              }} onMouseOver={(e) => e.currentTarget.style.borderColor = T.accent}
+                 onMouseOut={(e) => e.currentTarget.style.borderColor = T.line}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                      {c.name}
+                      <ExternalLink size={11} color={T.creamDim} />
+                    </div>
+                    <div style={{ fontSize: 11, color: T.creamDim, display: "flex", gap: 8 }}>
+                      <span>{c.area}</span><span>·</span><span>{c.dist}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.accent, fontSize: 12 }}>
+                    <Star size={11} color={T.accent} /> {c.rating}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                  {c.tags.map((t) => <Pill key={t} dim>{t}</Pill>)}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   GLOSSARY
+   ========================================================================= */
+function Glossary({ ctx }) {
+  const vp = useViewport();
+  const [search, setSearch] = useState("");
+  const filtered = GLOSSARY.filter((g) =>
+    g.term.toLowerCase().includes(search.toLowerCase()) ||
+    g.def.toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <div>
+      <Header title="Glossary" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 900 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Coffee dictionary</div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 22 }}>The terms baristas throw around, demystified.</div>
+
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search terms..."
+               style={{ ...input, marginBottom: 22 }} />
+
+        <div style={{ display: "grid", gap: 12,
+                      gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+          {filtered.map((g, i) => (
+            <div key={g.term} className="fade-up" style={{
+              background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14,
+              padding: 18, animationDelay: `${i * 30}ms`,
+            }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                <div style={{ fontSize: 16, color: T.cream }}>{g.term}</div>
+                <div style={{ flex: 1, height: 1, background: T.line }} />
+              </div>
+              <div style={{ fontSize: 13, color: T.creamDim, lineHeight: 1.55 }}>{g.def}</div>
+            </div>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div style={{ textAlign: "center", padding: 60, color: T.creamDim, fontSize: 13 }}>
+            No matches. Try another term.
+          </div>
+        )}
+
+        {/* Bonus: tip strip at bottom */}
+        <div style={{ marginTop: 30, padding: 22, background: T.bg2,
+                      border: `1px solid ${T.line}`, borderRadius: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Lightbulb size={14} color={T.accent} />
+            <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>QUICK TIP</div>
+          </div>
+          <div style={{ fontSize: 13, color: T.cream, lineHeight: 1.55 }}>
+            {TIPS[Math.floor(Math.random() * TIPS.length)]}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   DISCOVER BEANS
+   ========================================================================= */
+function Discover({ ctx }) {
+  const vp = useViewport();
+  const [filter, setFilter] = useState("all"); // all | online | offline
+  const filtered = INDIAN_BEANS.filter((b) => {
+    if (filter === "all") return true;
+    if (filter === "online") return b.source.includes("Online");
+    if (filter === "offline") return b.source.includes("Cafes") || b.source.includes("Bangalore") || b.source.includes("Mumbai") || b.source.includes("Delhi") || b.source.includes("Pop-ups");
+    return true;
+  });
+
+  return (
+    <div>
+      <Header title="Discover Beans" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Indian specialty beans</div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 22 }}>Curated picks from roasters worth knowing.</div>
+
+        {/* Filter tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 22, overflowX: "auto" }} className="scrollx">
+          {[["all","All"],["online","Online"],["offline","In stores"]].map(([v, l]) => (
+            <button key={v} onClick={() => setFilter(v)} style={{
+              padding: "8px 16px", borderRadius: 999,
+              background: filter === v ? T.cream : T.bg2,
+              color: filter === v ? T.bg : T.cream,
+              border: `1px solid ${filter === v ? T.cream : T.line}`,
+              fontSize: 12, fontFamily: FONT, whiteSpace: "nowrap",
+            }}>{l}</button>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gap: 14,
+                      gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+          {filtered.map((b, i) => (
+            <div key={b.name} className="fade-up" style={{
+              background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 16,
+              overflow: "hidden", animationDelay: `${i * 40}ms`,
+            }}>
+              {/* Visual header — gradient strip suggesting roast level */}
+              <div style={{
+                height: 6, background: `linear-gradient(90deg, ${T.accent}, ${T.brown}, ${T.espresso})`,
+              }} />
+              <div style={{ padding: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <div style={{ fontSize: 16, color: T.cream }}>{b.name}</div>
+                  <Pill dim>{b.price}</Pill>
+                </div>
+                <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 14 }}>
+                  {b.roaster} · {b.origin}
+                </div>
+                <div style={{ fontSize: 12, color: T.cream, fontStyle: "italic", marginBottom: 14, lineHeight: 1.5 }}>
+                  "{b.notes}"
+                </div>
+                <div style={{ fontSize: 12, color: T.creamDim, lineHeight: 1.5, marginBottom: 14 }}>
+                  {b.desc}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                              paddingTop: 12, borderTop: `1px solid ${T.line}` }}>
+                  <div style={{ fontSize: 10, letterSpacing: "0.15em", color: T.creamDim, textTransform: "uppercase" }}>
+                    {b.source}
+                  </div>
+                  <button onClick={() => {
+                    window.open(`https://www.google.com/search?q=${encodeURIComponent(b.roaster + ' ' + b.name + ' coffee buy')}`, "_blank");
+                  }} style={{
+                    background: "transparent", border: `1px solid ${T.line}`, color: T.cream,
+                    padding: "6px 14px", borderRadius: 999, fontSize: 11, fontFamily: FONT,
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    Find <ExternalLink size={11} color={T.cream} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Fun fact at bottom */}
+        <div style={{ marginTop: 26, padding: 22, background: `linear-gradient(135deg, ${T.bg3}, ${T.bg2})`,
+                      border: `1px solid ${T.line}`, borderRadius: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Sparkles size={14} color={T.accent} />
+            <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>DID YOU KNOW</div>
+          </div>
+          <div style={{ fontSize: 13, color: T.cream, lineHeight: 1.55, fontStyle: "italic" }}>
+            India is the world's 7th largest coffee producer — most of it grown under shade in the Western Ghats. Karnataka alone accounts for ~70% of national production.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   BREW JOURNAL — log, review, get AI tweaks
+   ========================================================================= */
+const SCORE_AXES = [
+  { key: "sweetness", label: "Sweetness", lo: "Flat", hi: "Sweet" },
+  { key: "acidity", label: "Acidity", lo: "Dull", hi: "Bright" },
+  { key: "body", label: "Body", lo: "Thin", hi: "Heavy" },
+  { key: "bitterness", label: "Bitterness", lo: "None", hi: "Strong" },
+  { key: "aftertaste", label: "Aftertaste", lo: "Short", hi: "Lingering" },
+];
+
+function LogBrew({ ctx }) {
+  const vp = useViewport();
+  const pending = window.__pendingBrew;
+
+  // Allow logging even without a pending brew (manual entry)
+  const [scores, setScores] = useState({
+    sweetness: 5, acidity: 5, body: 5, bitterness: 3, aftertaste: 5, overall: 7,
+  });
+  const [notes, setNotes] = useState("");
+
+  const setScore = (k, v) => setScores({ ...scores, [k]: v });
+
+  const save = () => {
+    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const entry = {
+      id: pending?.existingId || Date.now(),
+      recipeId: pending?.recipeId || "manual",
+      recipeTitle: pending?.recipeTitle || "Manual entry",
+      method: pending?.method || ctx.method?.id || "v60",
+      bean: pending?.bean || ctx.bean?.name || "Unknown",
+      grinder: pending?.grinder || ctx.grinder?.name || "Unknown",
+      date: today,
+      dose: pending?.dose, water: pending?.water, temp: pending?.temp, clicks: pending?.clicks,
+      scores, notes,
+      quickLogged: false,
+    };
+    if (pending?.existingId) {
+      // Upgrade an existing quick-log to a full entry
+      ctx.setBrewLog(ctx.brewLog.map((e) => e.id === pending.existingId ? entry : e));
+    } else {
+      ctx.setBrewLog([entry, ...ctx.brewLog]);
+    }
+    window.__pendingBrew = null;
+    ctx.go("journal");
+  };
+
+  return (
+    <div>
+      <Header title="Log This Brew" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 720 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>
+          How did it taste?
+        </div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>
+          {pending?.recipeTitle ? `${pending.recipeTitle} · ${pending.bean}` : "Rate the brew honestly — it helps tune next time."}
+        </div>
+
+        {pending && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 22 }}>
+            <Pill dim>{pending.dose}g coffee</Pill>
+            <Pill dim>{pending.water}g water</Pill>
+            <Pill dim>{pending.temp}°C</Pill>
+            <Pill dim>{pending.clicks} clicks</Pill>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gap: 18, marginBottom: 26 }}>
+          {SCORE_AXES.map((axis) => (
+            <ScoreSlider key={axis.key} axis={axis} value={scores[axis.key]}
+                         onChange={(v) => setScore(axis.key, v)} />
+          ))}
+        </div>
+
+        <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14,
+                      padding: 18, marginBottom: 22 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 4 }}>OVERALL</div>
+              <div style={{ fontSize: 12, color: T.creamDim }}>How much did you enjoy this cup?</div>
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 200, color: T.accent }}>{scores.overall}</div>
+          </div>
+          <input type="range" min="1" max="10" value={scores.overall}
+                 onChange={(e) => setScore("overall", +e.target.value)}
+                 style={{ width: "100%", accentColor: T.accent }} />
+        </div>
+
+        <div style={{ marginBottom: 26 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 8 }}>NOTES</div>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Bright peaks, slightly thin body, faded too quickly..."
+                    style={{ ...input, minHeight: 100, resize: "none" }} />
+        </div>
+
+        <button onClick={save} style={{ ...primaryBtn, width: "100%" }}>Save to journal</button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreSlider({ axis, value, onChange }) {
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 12, padding: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ fontSize: 13, color: T.cream }}>{axis.label}</div>
+        <div style={{ fontSize: 16, fontWeight: 300, color: T.accent }}>{value}<span style={{ color: T.creamDim, fontSize: 11 }}>/10</span></div>
+      </div>
+      <input type="range" min="1" max="10" value={value} onChange={(e) => onChange(+e.target.value)}
+             style={{ width: "100%", accentColor: T.accent }} />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.creamDim, marginTop: 4, letterSpacing: "0.1em" }}>
+        <span>{axis.lo.toUpperCase()}</span><span>{axis.hi.toUpperCase()}</span>
+      </div>
+    </div>
+  );
+}
+
+function Journal({ ctx }) {
+  const vp = useViewport();
+  const log = ctx.brewLog;
+  const avgOverall = log.length ? (log.reduce((s, e) => s + e.scores.overall, 0) / log.length).toFixed(1) : "—";
+  const methodCounts = useMemo(() => {
+    const c = {};
+    log.forEach((e) => c[e.method] = (c[e.method] || 0) + 1);
+    return Object.entries(c).sort((a, b) => b[1] - a[1]);
+  }, [log]);
+
+  return (
+    <div>
+      <Header title="Brew Journal" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 1000 : "none", margin: "0 auto" }}>
+        <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Your brews</div>
+        <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 22 }}>
+          {log.length} logged · Avg overall {avgOverall}/10
+        </div>
+
+        {/* Method breakdown */}
+        {methodCounts.length > 0 && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
+            {methodCounts.map(([m, n]) => (
+              <Pill key={m} dim>{m.toUpperCase()} · {n}</Pill>
+            ))}
+          </div>
+        )}
+
+        {log.length === 0 ? (
+          <div style={{ padding: "60px 30px", textAlign: "center", background: T.bg2,
+                        border: `1px dashed ${T.line}`, borderRadius: 16 }}>
+            <Book size={28} color={T.creamDim} />
+            <div style={{ fontSize: 16, marginTop: 14 }}>No brews logged yet</div>
+            <div style={{ fontSize: 12, color: T.creamDim, marginTop: 8, marginBottom: 22 }}>
+              Brew a recipe and tap "Log brew" when finished.
+            </div>
+            <button onClick={() => ctx.go("methods")} style={primaryBtn}>Start a brew</button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 14,
+                        gridTemplateColumns: vp.isDesktop ? "1fr 1fr" : "1fr" }}>
+            {log.map((e, i) => (
+              <JournalEntry key={e.id} entry={e} ctx={ctx} idx={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function JournalEntry({ entry, ctx, idx }) {
+  const e = entry;
+  return (
+    <div className="fade-up" style={{
+      background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 16,
+      padding: 20, animationDelay: `${idx * 40}ms`,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        <div style={{ fontSize: 15, color: T.cream }}>{e.recipeTitle}</div>
+        <Pill dim>{e.date}</Pill>
+      </div>
+      <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 14 }}>
+        {e.bean} · {e.grinder}
+        {e.quickLogged && <span style={{ color: T.accent, marginLeft: 8 }}>· Quick log</span>}
+      </div>
+
+      {e.quickLogged ? (
+        // Minimal view for quick-logged entries
+        <div style={{
+          background: T.bg3, border: `1px dashed ${T.line}`, borderRadius: 10,
+          padding: 14, marginBottom: 14, textAlign: "center",
+        }}>
+          <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 8 }}>
+            You rated this {e.scores.overall}/10 overall.
+          </div>
+          <button onClick={() => {
+            window.__pendingBrew = {
+              recipeId: e.recipeId, recipeTitle: e.recipeTitle, method: e.method,
+              bean: e.bean, grinder: e.grinder,
+              dose: e.dose, water: e.water, temp: e.temp, clicks: e.clicks,
+              existingId: e.id,
+            };
+            ctx.go("logbrew");
+          }} style={{
+            background: "transparent", border: `1px solid ${T.line}`, color: T.accent,
+            padding: "8px 16px", borderRadius: 999, fontSize: 11, fontFamily: FONT,
+          }}>Add detailed rating →</button>
+        </div>
+      ) : (
+        // Full scores visualization
+        <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
+          {SCORE_AXES.map((a) => (
+            <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11 }}>
+              <div style={{ width: 70, color: T.creamDim }}>{a.label}</div>
+              <div style={{ flex: 1, height: 4, background: T.bg3, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: `${e.scores[a.key] * 10}%`, height: "100%", background: T.accent }} />
+              </div>
+              <div style={{ width: 18, textAlign: "right", color: T.cream }}>{e.scores[a.key]}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                    paddingTop: 12, borderTop: `1px solid ${T.line}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim }}>OVERALL</div>
+          <div style={{ fontSize: 18, fontWeight: 300, color: T.accent }}>{e.scores.overall}/10</div>
+        </div>
+        {!e.quickLogged && (
+          <button onClick={() => {
+            window.__pendingTweak = e;
+            ctx.go("tweak");
+          }} style={{
+            background: T.cream, color: T.bg, border: "none",
+            padding: "8px 16px", borderRadius: 999, fontSize: 11, fontFamily: FONT,
+            letterSpacing: "0.1em", textTransform: "uppercase", display: "flex",
+            alignItems: "center", gap: 6,
+          }}>
+            <Sparkles size={11} color={T.bg} /> Tweak
+          </button>
+        )}
+      </div>
+
+      {e.notes && (
+        <div style={{ marginTop: 12, fontSize: 12, color: T.creamDim, fontStyle: "italic", lineHeight: 1.5 }}>
+          "{e.notes}"
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+   TWEAK ENGINE — rules-based recipe coach
+   ========================================================================= */
+function generateTweaks(entry) {
+  const s = entry.scores;
+  const suggestions = [];
+  const diagnoses = [];
+
+  // BITTERNESS — too high = over-extracted
+  if (s.bitterness >= 7) {
+    diagnoses.push("Over-extracted — water pulled too much from the grounds.");
+    suggestions.push({ axis: "Grind", change: "Coarser", detail: "Try 1-2 clicks coarser. Bigger particles slow extraction." });
+    suggestions.push({ axis: "Temp", change: `Drop to ${Math.max(85, (entry.temp || 95) - 2)}°C`, detail: "Cooler water extracts less aggressively." });
+    suggestions.push({ axis: "Time", change: "Pour faster", detail: "Less contact time = less bitterness pulled." });
+  }
+
+  // BITTERNESS low + ACIDITY high = under-extracted
+  if (s.bitterness <= 3 && s.acidity >= 7 && s.sweetness <= 5) {
+    diagnoses.push("Under-extracted — sour, sharp, lacking sweetness.");
+    suggestions.push({ axis: "Grind", change: "Finer", detail: "Try 1-2 clicks finer. Smaller particles extract more." });
+    suggestions.push({ axis: "Temp", change: `Up to ${Math.min(99, (entry.temp || 92) + 2)}°C`, detail: "Hotter water dissolves more compounds." });
+    suggestions.push({ axis: "Time", change: "Pour slower", detail: "More contact time builds sweetness and body." });
+  }
+
+  // BODY too thin
+  if (s.body <= 3) {
+    diagnoses.push("Body is thin — lacks weight on the palate.");
+    suggestions.push({ axis: "Ratio", change: "Stronger", detail: `Try ${Math.round((entry.water || 250) * 0.92)}g water (drop ratio by 1 point) for more concentration.` });
+    if (entry.method === "v60" || entry.method === "chemex") {
+      suggestions.push({ axis: "Technique", change: "Less agitation", detail: "Skip the late swirl — preserves fines that build body." });
+    }
+  }
+
+  // BODY too heavy
+  if (s.body >= 8 && s.bitterness >= 6) {
+    diagnoses.push("Heavy and muddy — too much sediment and over-extraction.");
+    suggestions.push({ axis: "Grind", change: "Coarser", detail: "Bigger grind = less sediment, cleaner cup." });
+    suggestions.push({ axis: "Filter", change: "Pre-rinse longer", detail: "Removes paper taste and tightens filter pores." });
+  }
+
+  // SWEETNESS low
+  if (s.sweetness <= 4 && suggestions.length === 0) {
+    diagnoses.push("Lacks sweetness — extraction stopped short of sugars.");
+    suggestions.push({ axis: "Time", change: "Extend bloom", detail: "Try a 45s bloom instead of 30s. CO2 release helps even extraction." });
+    suggestions.push({ axis: "Grind", change: "Slightly finer", detail: "1 click finer to develop more sugar dissolution." });
+  }
+
+  // ACIDITY too high alone
+  if (s.acidity >= 8 && s.bitterness <= 4 && s.sweetness <= 6 && suggestions.length === 0) {
+    diagnoses.push("Bright but unbalanced — acidity dominates.");
+    suggestions.push({ axis: "Temp", change: `Up to ${Math.min(99, (entry.temp || 93) + 3)}°C`, detail: "Hotter water mellows acidity." });
+    suggestions.push({ axis: "Bean", change: "Try a longer rest", detail: "If beans are <7 days off-roast, wait a few days. Fresh beans read sour." });
+  }
+
+  // AFTERTASTE short
+  if (s.aftertaste <= 4) {
+    diagnoses.push("Aftertaste fades quickly — could be under-developed.");
+    suggestions.push({ axis: "Bean", change: "Check freshness", detail: "Beans past 4 weeks lose finish. Buy with visible roast date." });
+    suggestions.push({ axis: "Water", change: "Filtered, not RO", detail: "Minerals carry flavor. Pure RO water = flat finish." });
+  }
+
+  // GREAT BREW
+  if (s.overall >= 8 && diagnoses.length === 0) {
+    diagnoses.push("Excellent cup. Lock this recipe in.");
+    suggestions.push({ axis: "Repeat", change: "Save as default", detail: "Consistency beats novelty. Run this recipe again next session." });
+    suggestions.push({ axis: "Variation", change: "Try 1 variable", detail: "Want to push further? Change ONE thing — temp OR grind, never both." });
+  }
+
+  // No clear issues but mediocre
+  if (diagnoses.length === 0 && s.overall < 7) {
+    diagnoses.push("Balanced but unmemorable — small dial-in needed.");
+    suggestions.push({ axis: "Bean", change: "Different origin", detail: "Bean might be the limit. Try a different roaster or origin." });
+    suggestions.push({ axis: "Ratio", change: "Test a stronger pour", detail: `Try ${Math.round((entry.water || 250) * 0.94)}g water for more concentration.` });
+  }
+
+  return { diagnoses, suggestions };
+}
+
+function Tweak({ ctx }) {
+  const vp = useViewport();
+  const entry = window.__pendingTweak;
+  const [question, setQuestion] = useState("");
+  const [chatLog, setChatLog] = useState([]);
+
+  if (!entry) {
+    return (
+      <div>
+        <Header title="Tweak Recipe" onBack={ctx.back} />
+        <div style={{ padding: 40, textAlign: "center", color: T.creamDim }}>
+          No brew selected. Open a journal entry first.
+        </div>
+      </div>
+    );
+  }
+
+  const { diagnoses, suggestions } = useMemo(() => generateTweaks(entry), [entry]);
+
+  const ask = () => {
+    if (!question.trim()) return;
+    const q = question.trim();
+    const a = answerQuestion(q, entry);
+    setChatLog([...chatLog, { q, a }]);
+    setQuestion("");
+  };
+
+  return (
+    <div>
+      <Header title="Tweak This Recipe" onBack={ctx.back} />
+      <div style={{ padding: "26px 22px", maxWidth: vp.isDesktop ? 800 : "none", margin: "0 auto" }}>
+        {/* Source brew summary */}
+        <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 16, padding: 20, marginBottom: 22 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 6 }}>BASED ON</div>
+          <div style={{ fontSize: 18, fontWeight: 300, marginBottom: 8 }}>{entry.recipeTitle}</div>
+          <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 12 }}>{entry.bean} · {entry.date}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {SCORE_AXES.map((a) => (
+              <Pill key={a.key} dim>{a.label}: {entry.scores[a.key]}</Pill>
+            ))}
+            <Pill>Overall: {entry.scores.overall}/10</Pill>
+          </div>
+        </div>
+
+        {/* Diagnosis */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Sparkles size={14} color={T.accent} />
+            <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>WHAT WE'RE READING</div>
+          </div>
+          {diagnoses.map((d, i) => (
+            <div key={i} style={{ fontSize: 14, color: T.cream, lineHeight: 1.55, marginBottom: 8 }}>
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Suggestions */}
+        <div style={{ marginBottom: 26 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 14 }}>TRY NEXT TIME</div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {suggestions.map((sug, i) => (
+              <div key={i} className="fade-up" style={{
+                background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 12,
+                padding: 16, animationDelay: `${i * 60}ms`, display: "flex", gap: 14, alignItems: "flex-start",
+              }}>
+                <div style={{ width: 44, flexShrink: 0 }}>
+                  <div style={{ fontSize: 9, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 2 }}>{sug.axis.toUpperCase()}</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, color: T.accent, marginBottom: 4 }}>{sug.change}</div>
+                  <div style={{ fontSize: 12, color: T.creamDim, lineHeight: 1.5 }}>{sug.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Q&A */}
+        <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 22 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 14 }}>ASK THE COACH</div>
+
+          {chatLog.length > 0 && (
+            <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+              {chatLog.map((m, i) => (
+                <div key={i}>
+                  <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 6, fontStyle: "italic" }}>"{m.q}"</div>
+                  <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 12,
+                                padding: 14, fontSize: 13, color: T.cream, lineHeight: 1.55 }}>
+                    {m.a}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={question} onChange={(e) => setQuestion(e.target.value)}
+                   onKeyDown={(e) => e.key === "Enter" && ask()}
+                   placeholder="Why was it sour? How do I get more body?"
+                   style={{ ...input, flex: 1 }} />
+            <button onClick={ask} style={{ ...primaryBtn, padding: "14px 22px" }}>Ask</button>
+          </div>
+
+          <div style={{ fontSize: 10, color: T.creamDim, marginTop: 10, lineHeight: 1.5 }}>
+            Try: "why is it bitter", "how do I get more sweetness", "should I change beans"
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function answerQuestion(q, entry) {
+  const Q = q.toLowerCase();
+  const s = entry.scores;
+
+  if (Q.includes("bitter") || Q.includes("burnt")) {
+    return s.bitterness >= 6
+      ? `Your bitterness scored ${s.bitterness}/10 — this is over-extraction. Three levers: grind 1-2 clicks coarser, drop water temp by 2°C, or pour faster to reduce contact time. Try one change at a time.`
+      : `Your bitterness was actually moderate (${s.bitterness}/10). If it tasted bitter to you anyway, it might be the bean's roast profile rather than your method. Try a lighter roast.`;
+  }
+  if (Q.includes("sour") || Q.includes("acid")) {
+    return s.acidity >= 7 && s.sweetness <= 5
+      ? `Bright acidity (${s.acidity}/10) without matching sweetness (${s.sweetness}/10) reads as "sour." This is under-extraction. Grind finer, raise temp to 95-96°C, or extend brew time. Also: very fresh beans (<7 days off-roast) often taste sharp until they settle.`
+      : `Your acidity at ${s.acidity}/10 isn't extreme. If it tasted sour, the issue is likely lack of sweetness rather than too much acid — try grinding finer.`;
+  }
+  if (Q.includes("body") || Q.includes("thin") || Q.includes("watery")) {
+    return s.body <= 4
+      ? `Body of ${s.body}/10 is thin. Three fixes: (1) Stronger ratio — try 1:15 instead of 1:16. (2) Skip late agitation that washes fines through the filter. (3) Try a natural-process bean — they have more body than washed.`
+      : `Body at ${s.body}/10 is decent. To push further, try a coarser grind paradoxically — it slows drawdown and lets more soluble compounds through.`;
+  }
+  if (Q.includes("sweet")) {
+    return `Sweetness comes from longer extraction of sugars. You scored ${s.sweetness}/10. Extend your bloom to 45s, grind slightly finer, and ensure water is 94-96°C. Also: bean freshness matters — sweetness peaks 10-21 days post-roast.`;
+  }
+  if (Q.includes("bean") || Q.includes("change")) {
+    return `Looking at your scores — ${s.overall}/10 overall — the bean (${entry.bean}) might not be the limit yet. Try one method tweak first. If you've already dialed in and still aren't happy, the bean is the ceiling. For your style, look at notes that match what you enjoyed.`;
+  }
+  if (Q.includes("temp") || Q.includes("temperature") || Q.includes("hot")) {
+    return `You brewed at ${entry.temp || 93}°C. Light roasts want 94-96°C, medium 91-94°C, dark 88-92°C. If your cup was bitter, drop 2°C. If sour or thin, raise 2°C. Never exceed 99°C — kettle just off boil is ideal.`;
+  }
+  if (Q.includes("grind") || Q.includes("coarse") || Q.includes("fine")) {
+    return `You used ${entry.clicks || "?"} clicks on ${entry.grinder}. Bitter? Coarser by 1-2 clicks. Sour or weak? Finer by 1-2 clicks. Always change ONE click at a time and brew 2-3 cups at the new setting before judging.`;
+  }
+  if (Q.includes("better") || Q.includes("improve") || Q.includes("good")) {
+    return `Your overall was ${s.overall}/10. The biggest lift usually comes from your weakest score — yours is ${weakest(s).label} (${weakest(s).value}/10). Focus there first. Read the suggestions above for specific tweaks.`;
+  }
+  return `Based on your brew (overall ${s.overall}/10), the main signal is around ${weakest(s).label.toLowerCase()} (${weakest(s).value}/10) and ${strongest(s).label.toLowerCase()} (${strongest(s).value}/10). Look at the suggestions above — they target your specific score profile. Ask a more specific question if you want a deeper dive.`;
+}
+function weakest(s) {
+  const axes = SCORE_AXES.map((a) => ({ label: a.label, value: s[a.key] }));
+  return axes.sort((a, b) => a.value - b.value)[0];
+}
+function strongest(s) {
+  const axes = SCORE_AXES.map((a) => ({ label: a.label, value: s[a.key] }));
+  return axes.sort((a, b) => b.value - a.value)[0];
+}
+
+/* =========================================================================
+   MOUNT
+   ========================================================================= */
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+
+</body>
+</html>
