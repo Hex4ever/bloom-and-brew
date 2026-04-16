@@ -91,7 +91,7 @@ Tasks are tracked in the in-session task list, but in case that is lost, here ar
 - [x] #1 Move `index.html` to `reference/`
 - [x] #2 `git init` + initial commit
 - [x] #3 Scaffold Vite + React 19 + TS 6 in `web/`
-- [ ] **#3b Commit the Vite scaffold** (was interrupted — first thing to do on resume, assuming user approves)
+- [x] #3b Commit the Vite scaffold (done 2026-04-16 as part of re-init at `bloombrewvs`)
 - [ ] #4 Create directory structure in `web/src/`: `pages/`, `components/`, `lib/`, `data/`, `styles/`, `types/`
 - [ ] #5 Define TypeScript data models in `web/src/types/`: `Recipe`, `Bean`, `Grinder`, `JournalEntry`, `RatingAxes`, `PrepStep`, `UserSettings`, `Method`, `BrewingMethodCategory`
 - [ ] #6 Port static data from `reference/index.html` into `web/src/data/`: 24 recipes, 6 grinders, 12 glossary terms, 8 Indian roasters, 6 Bangalore cafes
