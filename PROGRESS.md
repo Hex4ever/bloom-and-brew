@@ -94,7 +94,7 @@ Tasks are tracked in the in-session task list, but in case that is lost, here ar
 - [x] #3b Commit the Vite scaffold (done 2026-04-16 as part of re-init at `bloombrewvs`)
 - [x] #4 Create directory structure in `web/src/`: `pages/`, `components/`, `lib/`, `data/`, `styles/`, `types/` (empty dirs tracked via `.gitkeep`)
 - [x] #5 Define TypeScript data models in `web/src/types/`: `Method`/`MethodId`/`BrewingMethodCategory`/`MethodDifficulty`, `Recipe`/`RecipeStep`/`RecipesByMethod`, `Grinder`/`GrinderType`, `Bean`/`BeanSource`/`CuratedBean`, `JournalEntry`/`RatingAxes`/`RatingAxisKey`, `PrepStep`/`PrepChecklist`/`PrepChecklistsByMethod`, `UserSettings`/`Units`/`TempUnit`. Barrel in `types/index.ts`. `tsc --noEmit` clean.
-- [ ] #6 Port static data from `reference/index.html` into `web/src/data/`: 24 recipes, 6 grinders, 12 glossary terms, 8 Indian roasters, 6 Bangalore cafes
+- [x] #6 Port static data from `reference/index.html` into `web/src/data/`: 26 recipes (all methods), 6 grinders, 12 glossary terms, 8 Indian roasters, 6 Bangalore cafes, 10 tips, 8 fun facts, 9 pre-brew checklists + default, 3 community feed seeds, score-axis config. Barrel in `data/index.ts`. tsc clean.
 - [ ] #7 Port pure logic to `web/src/lib/`: `grinderMath`, `flavorMatch`, `tweakEngine`, `recipeScaling` — add `vitest` unit tests
 - [ ] #8 Build `web/src/lib/storage.ts` — typed localStorage wrapper with a schema version field (so the Supabase swap in Phase 3 is one file's worth of change)
 - [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`
