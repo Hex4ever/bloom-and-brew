@@ -2,11 +2,11 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-16 (end of session 2)
-**Current phase:** Phase 0 — Project foundation (6 of 14 tasks done)
+**Last updated:** 2026-04-16 (end of session 3)
+**Current phase:** Phase 0 — Project foundation (7 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** `e08f17c` — feat(data): port all static data from prototype
+**Head of `main`:** `789ee2c` — feat(lib): port four pure-logic modules
 
 ---
 
@@ -31,8 +31,8 @@ When you open a new session:
 - [x] #4 Create directory structure in `web/src/`: `pages/`, `components/`, `lib/`, `data/`, `styles/`, `types/` (empty dirs tracked via `.gitkeep`; `types/` and `data/` now have real files, `.gitkeep` stays in the still-empty ones)
 - [x] #5 Define TypeScript data models in `web/src/types/`
 - [x] #6 Port static data into `web/src/data/`
-- [ ] **#7 Port pure logic to `web/src/lib/` + unit tests** ← next up (see below)
-- [ ] #8 Build `web/src/lib/storage.ts` — typed localStorage wrapper with a schema version field (so the Supabase swap in Phase 3 is one file's worth of change)
+- [x] **#7 Port pure logic to `web/src/lib/` + unit tests**
+- [ ] **#8 Build `web/src/lib/storage.ts`** ← next up — typed localStorage wrapper with a schema version field (so the Supabase swap in Phase 3 is one file's worth of change)
 - [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`
 - [ ] #10 Port pages to `web/src/pages/`: Dashboard, MethodPicker, Setup, RecipeList, PreBrew, Brewing, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog. Install `react-router-dom` and wire routing.
 - [ ] #11 Port CSS to `web/src/styles/` — keep every CSS variable name identical; split by concern (base, layout, components)
@@ -44,100 +44,24 @@ When you open a new session:
 
 ---
 
-## Next up: Task #7 — port pure logic to `web/src/lib/`
+## Next up: Task #8 — `web/src/lib/storage.ts`
 
-Four pure functions + vitest. All currently live inline inside React components in `reference/index.html`; extract them into typed, tested modules. Types already exist in `web/src/types/`; data already exists in `web/src/data/`.
+Typed localStorage wrapper with a schema-version field so the Supabase swap in Phase 3 is one file's worth of change.
 
-### 7a. Set up vitest
-
-```bash
-cd web
-npm i -D vitest @vitest/coverage-v8
-```
-
-Add scripts to `web/package.json`:
-
-```json
-"scripts": {
-  "test": "vitest",
-  "test:run": "vitest run",
-  "test:cov": "vitest run --coverage"
-}
-```
-
-No separate `vitest.config.ts` needed — Vitest reads `vite.config.ts`.
-
-Tests co-located: `web/src/lib/<module>.test.ts`.
-
-### 7b. The four modules
-
-**`lib/grinderMath.ts`**
-- Input: `Grinder`, `microns` (target grind size), `adjustmentClicks?` (from tweak engine, ±N)
-- Output: `{ clicks: number, supportsHalf: boolean, display: string }` — display like "23" or "23.5"
-- Rules:
-  - `clicks = microns * grinder.clicksPerMicron`
-  - Hand grinders with half-click detents: `supportsHalf = ["c40", "jx", "k6"].includes(grinder.id)` — round to nearest 0.5
-  - Others: round to nearest whole click
-  - Reference: `reference/index.html` line 1692 (`supportsHalf`), line 1711 (display formatting)
-- Tests: one per grinder id covering a typical micron value; edge cases for 0 and very-large microns.
-
-**`lib/recipeScaling.ts`**
-- Input: `Recipe`, `cups: number` (0.5–8, 0.5 increments)
-- Output: scaled `{ dose, water, temp, microns, milk? }` + scaled `RecipeStep[]` + `totalTime` (seconds)
-- Rules (all from `reference/index.html` lines 1641–1700):
-  - `dose`, `water`, `milk`, step `pour` values: linear × cups
-  - `temp`: unchanged
-  - Brew time: `Math.sqrt(cups)` × original — doubling volume ≠ doubling time
-  - Step `t` (offset): scale by `Math.sqrt(cups)` too, so the whole schedule stretches consistently
-  - Grind coarser for bigger batches: `adjMicrons = Math.round(recipe.microns * (1 + (cups - 1) * 0.05))` — 5% coarser per additional cup
-  - Step `desc` strings: prototype rewrites "Pour to 100g" → "Pour to 200g" when cups=2. See how it does the regex rewrite around line 1650ish; replicate or leave strings unchanged and render cups-aware sub-text in the UI.
-- Tests: identity at cups=1, 2× all masses at cups=2, time stretch by √2, micron bump.
-
-**`lib/flavorMatch.ts`**
-- Input: free-text flavor query, optional method filter
-- Output: ranked `{ recipe: Recipe, score: number, profile: RatingAxes, matchedKeywords: string[] }[]`
-- Rules (reference lines 1076–1236):
-  - `FLAVOR_KEYWORDS` maps words → axis deltas (positive/negative). Port this map as a const.
-  - Parse user text → build target profile across the 5 rating axes (baseline 5 + sum of deltas, clamped to 0–10)
-  - Each recipe has an implicit profile (prototype computes it by method — see line 1153 `byMethod`). Port that table.
-  - Score each recipe: `-Math.sqrt(sum of squared distances per axis) + ratingBoost` where `ratingBoost = recipe.rating * 0.3` (line 1198)
-  - Return top-N sorted descending by score; include matched keywords for the pills UI
-  - If no keywords parsed, return a clearly-flagged empty/low-confidence result
-- Tests: exact-match queries ("bright and fruity"), unknown-word queries, method filter narrows set, ordering is stable for ties.
-
-**`lib/tweakEngine.ts`**
-- Input: `JournalEntry` (has scores, recipe params, clicks, grinder)
-- Output: `{ diagnosis: string, suggestions: Array<{ axis: 'Grind'|'Temp'|'Time'|'Ratio'|'Bean', change: string, why: string }> }`
-- Rules: reference `generateTweaks` at line 3066 and follow-on Q&A helpers around 3283. Key heuristics (coffee-science rules of thumb):
-  - Bitter + low sweetness → over-extracted: coarser grind, lower temp, faster pour
-  - Sour + low sweetness → under-extracted: finer grind, raise temp, extend brew
-  - Thin body → stronger ratio, less agitation
-  - Muddy + bitter → coarser grind, rinse filter longer
-  - Short aftertaste → check bean freshness, improve water quality
-- Return deterministic, ordered suggestions; concrete numbers computed from the entry's actual dose/water/temp/clicks.
-- Tests: five-ish canonical scorecards → expected primary diagnosis; assert suggestion numbers match the computed values (no literal strings; interpolate from input).
-
-### 7c. Guardrails
-
-- `import type` from `../types` where needed (`verbatimModuleSyntax: true`).
-- No React imports — these are pure. If you find yourself reaching for `useMemo`, you're in the wrong file.
-- Aim for 100% branch coverage on `grinderMath` and `recipeScaling`; ~80% on the two rule-based engines is fine.
-- After each module: `npx tsc --noEmit -p tsconfig.app.json` and `npm run test:run` both clean.
-- Commit per-module (or one commit for all four if tests pass cleanly). Prefix messages `feat(lib): ...`.
-
-### 7d. Open algorithmic questions to watch for
-
-- **Flavor keyword parsing**: the prototype is a naive substring match. Fine for MVP; document the precision/recall tradeoff in a code comment so Phase 4's Claude-powered swap is unsurprising.
-- **Tweak suggestion magnitudes**: the prototype picks +/- values that "feel right" to a coffee enthusiast. If you want these exact, cross-reference with the prototype line-by-line; otherwise codify them as named constants at the top of `tweakEngine.ts` so they're tunable in one place.
-- **Step-description rewrites during scaling**: if you preserve the prototype's regex approach, note that it breaks for recipes that don't phrase things as "Pour to Xg" (most don't). Simpler: don't rewrite step descs, just show the scaled `dose/water/milk` in the prep card header and let the step descs reference "the target weight" generically. Check visual parity against the prototype either way before locking this in.
+Key design points:
+- Generic `get<T>(key, fallback)` / `set<T>(key, value)` / `remove(key)` with JSON serialisation.
+- A `SCHEMA_VERSION` constant exported alongside the wrapper; stored in `localStorage` under `bbrew_schema_version`. If the stored version doesn't match, wipe stale keys (prevents silent corruption when types change across deploys).
+- Typed key enum / literal union — only known keys can be passed, no stringly-typed access.
+- Tests with `vi.stubGlobal('localStorage', ...)` or Vitest's built-in `localStorage` (jsdom/happy-dom env not needed for unit tests — stub a minimal Map-backed implementation).
+- Commit: `feat(lib): add typed localStorage wrapper with schema versioning`.
 
 ---
 
-## What's on disk now (as of 2026-04-16 end of session 2)
+## What's on disk now (as of 2026-04-16 end of session 3)
 
 ```
 bloombrewvs/
-  .git/                          4 commits on main
+  .git/                          5 commits on main
   .gitignore                     node_modules, .env, dist, .venv, .vercel, .supabase, etc.
   .nvmrc                         "22"
   BUILD_PLAN.md                  9-phase plan (stable)
@@ -179,7 +103,12 @@ bloombrewvs/
         feed.ts                  3 CommunityPost[] seeds + CommunityPost type
       pages/.gitkeep             empty (task #10)
       components/.gitkeep        empty (task #9)
-      lib/.gitkeep               empty (task #7 next)
+      lib/
+        .gitkeep
+        grinderMath.ts + grinderMath.test.ts
+        recipeScaling.ts + recipeScaling.test.ts
+        flavorMatch.ts + flavorMatch.test.ts
+        tweakEngine.ts + tweakEngine.test.ts
       styles/.gitkeep            empty (task #11)
 ```
 
@@ -195,6 +124,16 @@ Working tree is clean. Everything is committed.
 - Pinned Node 22.17.0 per-project via `.nvmrc`; system Node 18 untouched.
 - Scaffolded Vite 8 + React 19 + TypeScript 6 in `web/`.
 - Original `git init` happened at `/Users/praveenkumarv/PycharmProjects/bloomanbrew` — that path is now abandoned.
+
+### Session 3 (2026-04-16) — pure-logic lib + vitest
+- Installed vitest 3.x + @vitest/coverage-v8; added `test`, `test:run`, `test:cov` scripts to `web/package.json` (task #7a).
+- Wrote four pure-logic modules in `web/src/lib/` (task #7b):
+  - `grinderMath.ts` — microns → clicks with half-click support for c40/jx/k6 (21 tests).
+  - `recipeScaling.ts` — linear mass scaling, √cups time stretch, 5%/cup micron coarsening; step descs left unchanged (19 tests).
+  - `flavorMatch.ts` — FLAVOR_KEYWORDS map, `parseFlavorText`, `recipeProfile`, `flavorMatch`; empty result on no-keyword query; MVP precision/recall tradeoff documented in code comment (19 tests).
+  - `tweakEngine.ts` — rules-based coach (over/under extraction, thin body, muddy, low sweetness, acidity imbalance, short aftertaste, great brew, mediocre); all suggestion numbers computed from entry values, not hard-coded; tunable constants at module top (23 tests).
+- 82 tests total, all green; `tsc --noEmit` clean; committed as `789ee2c`.
+- Decision: step desc strings are NOT rewritten during scaling — the UI will show scaled dose/water/milk in the prep-card header instead (resolves task #7d open question).
 
 ### Session 2 (2026-04-16) — re-init + types + data
 - Re-init git at `/Users/praveenkumarv/bloombrewvs`; old PycharmProjects path discarded (its `.git` is not migrated).
