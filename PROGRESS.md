@@ -3,10 +3,10 @@
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
 **Last updated:** 2026-04-17 (session 6)
-**Current phase:** Phase 0 — Project foundation (11 of 14 tasks done)
-**Plan of record:** `BUILD_PLAN.MD`
+**Current phase:** Phase 0 — Project foundation (12 of 14 tasks done)
+**Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** TBD — feat(styles): task #11 — port CSS to web/src/styles/
+**Head of `main`:** TBD — feat(tooling): task #12 — ESLint tighten + Prettier + Husky pre-commit
 
 ---
 
@@ -36,7 +36,7 @@ When you open a new session:
 - [x] **#9 Port shared components to `web/src/components/`** — `BottomNav`, `Sidebar`, `SettingsModal`, `PrepChecklist`, `ScoreSlider`, `RatingBars`, `BrewScene`, `BrewTimer`
 - [x] **#10 Port pages to `web/src/pages/`** — all 15 pages ported (Dashboard, MethodPicker, Setup, RecipeList, Brew, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog, ScanBean). `react-router-dom` v6 installed, `createBrowserRouter + RouterProvider` wired in `App.tsx`, `AppContext` provides write-through localStorage persistence via `storage.ts`, `initStorage()` called on startup in `main.tsx`.
 - [x] **#11 Port CSS to `web/src/styles/`** — `tokens.css` (CSS custom properties mirroring `T`), `base.css` (reset + html/body/button), `animations.css` (all 10 keyframes + `.fade-up`, `.scrollx`); `index.css` now imports all three; old Vite defaults removed; `App.css` cleared; `noUnusedLocals` fix in `Journal.tsx` (stale `SCORE_AXES` import + spurious `axes` prop).
-- [ ] #12 ESLint + Prettier + Husky pre-commit; add npm scripts `lint`, `format`, `typecheck`
+- [x] **#12 ESLint + Prettier + Husky pre-commit** — Prettier installed (`printWidth:100`, double quotes, trailing commas); `.prettierrc` + `.prettierignore`; `format`, `format:check`, `typecheck` scripts added; ESLint tightened (`no-console` warn, `consistent-type-imports` error); `lint-staged` installed; `.husky/pre-commit` runs `typecheck` then `lint`; `git config core.hooksPath .husky` wired via `prepare` script. Fixed 6 pre-existing lint violations (sync setState in effect in Cafes, `Math.random` in render in Dashboard + Glossary, react-refresh in AppContext + BrewTimer).
 - [ ] #13 Visual-parity check against `reference/index.html` in desktop and mobile widths
 - [ ] #14 Deploy to Vercel (only once parity is confirmed)
 
@@ -44,9 +44,9 @@ When you open a new session:
 
 ---
 
-## Next up: Task #12 — ESLint + Prettier + Husky pre-commit
+## Next up: Task #13 — Visual-parity check
 
-Add `lint`, `format`, `typecheck` npm scripts. Configure ESLint (tighten from Vite default), Prettier, and Husky pre-commit hook so every commit is clean.
+Open `reference/index.html` and `npm run dev` side-by-side at 390px (mobile) and 1280px (desktop). Document any layout or color gaps; fix until pixel-identical. Then task #14 deploys to Vercel.
 
 ---
 

@@ -3,7 +3,7 @@ import type { RecipeStep } from "../types";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-/** Format seconds as M:SS */
+// eslint-disable-next-line react-refresh/only-export-components
 export function fmtTime(s: number): string {
   const m = Math.floor(s / 60);
   const sec = s % 60;

@@ -6,6 +6,8 @@ import { useViewport, inputStyle } from "../components/ui";
 import { Header } from "../components/Header";
 import { GLOSSARY, TIPS } from "../data";
 
+const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+
 export function Glossary() {
   const navigate = useNavigate();
   const { isDesktop } = useViewport();
@@ -18,7 +20,7 @@ export function Glossary() {
     ),
   [search]);
 
-  const tip = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
+  const tip = randomTip;
 
   return (
     <div>

@@ -10,22 +10,21 @@ import { CAFES } from "../data";
 export function Cafes() {
   const navigate = useNavigate();
   const { isDesktop } = useViewport();
-  const [locating, setLocating] = useState(true);
+  const hasGeo = Boolean(navigator.geolocation);
+  const [locating, setLocating] = useState(hasGeo);
   const [hasRealLocation, setHasRealLocation] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(
+    hasGeo ? null : "Geolocation not supported",
+  );
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation not supported");
-      setLocating(false);
-      return;
-    }
+    if (!hasGeo) return;
     navigator.geolocation.getCurrentPosition(
       () => { setHasRealLocation(true); setLocating(false); },
       () => { setLocationError("Showing demo cafes — enable location for nearby results"); setLocating(false); },
       { timeout: 6000 },
     );
-  }, []);
+  }, [hasGeo]);
 
   const openInMaps = (name: string, area: string) => {
     const q = encodeURIComponent(`${name} ${area} Bangalore`);

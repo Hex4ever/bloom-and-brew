@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Compass, MapPin, Book, Plus, Coffee,
@@ -19,7 +18,7 @@ function DashCard({ icon, label, sub, onClick }: {
     <button onClick={onClick} style={{
       background: T.bg2, border: `1px solid ${T.line}`,
       borderRadius: 18, padding: 20, textAlign: "left", color: T.cream,
-      cursor: "pointer", fontFamily: FONT,
+      cursor: "pointer", fontFamily: FONT, width: "100%", boxSizing: "border-box",
     }}>
       <div style={{ color: T.accent, marginBottom: 18 }}>{icon}</div>
       <div style={{ fontSize: 15, fontWeight: 400 }}>{label}</div>
@@ -84,6 +83,9 @@ function FactCard({ fact }: { fact: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const tipOfTheDay  = TIPS[Math.floor(Math.random() * TIPS.length)];
+const factOfTheDay = FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)];
+
 export function Dashboard() {
   const navigate = useNavigate();
   const { settings, setSettingsOpen, brewLog, beanLog } = useAppContext();
@@ -93,11 +95,8 @@ export function Dashboard() {
   const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
   const padX = isDesktop ? 60 : 26;
 
-  const tipOfTheDay  = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
-  const factOfTheDay = useMemo(() => FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)], []);
-
   return (
-    <div style={{ padding: `${isDesktop ? 50 : 60}px ${padX}px 60px`, minHeight: "100vh", maxWidth: isDesktop ? 1000 : "none", margin: "0 auto", width: "100%" }}>
+    <div style={{ padding: `${isDesktop ? 50 : 60}px ${padX}px 60px`, minHeight: "100vh", maxWidth: isDesktop ? 1000 : "none", margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       {/* Logo row */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isDesktop ? 50 : 70 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -124,7 +123,7 @@ export function Dashboard() {
       {/* Cards grid */}
       {isDesktop ? (
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 22, marginBottom: 22 }}>
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
             <button onClick={() => navigate("/methods")} style={{
               background: T.cream, color: T.bg, border: "none", padding: "30px 32px",
               borderRadius: 22, display: "flex", justifyContent: "space-between",
@@ -146,7 +145,7 @@ export function Dashboard() {
               <DashCard onClick={() => navigate("/beans")}    icon={<Coffee size={18} />}  label="Bean Log"       sub={`${beanLog.length} active`} />
             </div>
           </div>
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
             <WeekStats />
             <TipCard tip={tipOfTheDay} />
             <FactCard fact={factOfTheDay} />
