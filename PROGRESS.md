@@ -6,7 +6,7 @@ This file is the live log of what has been done, what is next, and how to resume
 **Current phase:** Phase 0 — Project foundation (10 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** `1603aba` — feat(components): port 8 shared components with tests
+**Head of `main`:** `1547a25` — feat(pages): task #10 — port all 15 pages + wire react-router-dom
 
 ---
 
