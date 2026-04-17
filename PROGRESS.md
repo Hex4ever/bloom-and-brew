@@ -2,8 +2,8 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-17 (session 4)
-**Current phase:** Phase 0 — Project foundation (9 of 14 tasks done)
+**Last updated:** 2026-04-17 (session 5)
+**Current phase:** Phase 0 — Project foundation (10 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Head of `main`:** `1603aba` — feat(components): port 8 shared components with tests
@@ -34,7 +34,7 @@ When you open a new session:
 - [x] **#7 Port pure logic to `web/src/lib/` + unit tests**
 - [x] **#8 Build `web/src/lib/storage.ts`** — typed localStorage wrapper with schema versioning
 - [x] **#9 Port shared components to `web/src/components/`** — `BottomNav`, `Sidebar`, `SettingsModal`, `PrepChecklist`, `ScoreSlider`, `RatingBars`, `BrewScene`, `BrewTimer`
-- [ ] #10 Port pages to `web/src/pages/`: Dashboard, MethodPicker, Setup, RecipeList, PreBrew, Brewing, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog. Install `react-router-dom` and wire routing.
+- [x] **#10 Port pages to `web/src/pages/`** — all 15 pages ported (Dashboard, MethodPicker, Setup, RecipeList, Brew, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog, ScanBean). `react-router-dom` v6 installed, `createBrowserRouter + RouterProvider` wired in `App.tsx`, `AppContext` provides write-through localStorage persistence via `storage.ts`, `initStorage()` called on startup in `main.tsx`.
 - [ ] #11 Port CSS to `web/src/styles/` — keep every CSS variable name identical; split by concern (base, layout, components)
 - [ ] #12 ESLint + Prettier + Husky pre-commit; add npm scripts `lint`, `format`, `typecheck`
 - [ ] #13 Visual-parity check against `reference/index.html` in desktop and mobile widths
@@ -44,17 +44,9 @@ When you open a new session:
 
 ---
 
-## Next up: Task #10 — Port all 15 pages + install routing
+## Next up: Task #11 — Port CSS
 
-Install `react-router-dom`, define routes in `App.tsx`, then port every page from `reference/index.html` into `web/src/pages/`.
-
-Pages to create: `Dashboard`, `MethodPicker`, `Setup`, `RecipeList`, `PreBrew`, `Brewing`, `Rating`, `Journal`, `Tweak`, `Discover`, `Cafes`, `Glossary`, `Community`, `SubmitRecipe`, `BeanLog`.
-
-Key design points:
-- Pages receive no globals — only props and hooks (router params, context).
-- Wire `storage.ts` for journal reads/writes so refreshing persists data (Phase 0 exit criterion).
-- Each page should be a standalone `.tsx`; shared sub-components live in `components/`.
-- Routing: `react-router-dom` v6, `createBrowserRouter` + `RouterProvider` pattern.
+Port all styles from `reference/index.html` into `web/src/styles/`. Keep every CSS variable name identical. Split by concern: base reset, layout, component styles, animations. The existing `web/src/index.css` and `App.css` will be replaced/merged.
 
 ---
 

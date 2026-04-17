@@ -1,0 +1,190 @@
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Compass, MapPin, Book, Plus, Coffee,
+  Users, Lightbulb, Sparkles,
+} from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
+import { T, FONT } from "../styles/theme";
+import { useViewport, iconBtn } from "../components/ui";
+import { useAppContext } from "../AppContext";
+import { TIPS, FUN_FACTS } from "../data";
+
+// ─── Sub-components (Dashboard-only) ─────────────────────────────────────────
+
+function DashCard({ icon, label, sub, onClick }: {
+  icon: React.ReactNode; label: string; sub: string; onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} style={{
+      background: T.bg2, border: `1px solid ${T.line}`,
+      borderRadius: 18, padding: 20, textAlign: "left", color: T.cream,
+      cursor: "pointer", fontFamily: FONT,
+    }}>
+      <div style={{ color: T.accent, marginBottom: 18 }}>{icon}</div>
+      <div style={{ fontSize: 15, fontWeight: 400 }}>{label}</div>
+      <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>{sub}</div>
+    </button>
+  );
+}
+
+function Stat({ n, l }: { n: string; l: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 26, fontWeight: 200 }}>{n}</div>
+      <div style={{ fontSize: 9, color: T.creamDim, letterSpacing: "0.15em", textTransform: "uppercase" }}>{l}</div>
+    </div>
+  );
+}
+
+function WeekStats() {
+  return (
+    <div style={{ border: `1px solid ${T.line}`, borderRadius: 18, padding: 22, background: T.bg2 }}>
+      <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 18 }}>THIS WEEK</div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
+        <Stat n="12" l="brews" /><Stat n="4.7" l="avg score" /><Stat n="3" l="methods" />
+      </div>
+      <div style={{ display: "flex", gap: 4, height: 50, alignItems: "flex-end" }}>
+        {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
+          <div key={i} style={{ flex: 1, background: i === 6 ? T.accent : T.brownDeep, height: `${h}%`, borderRadius: 2 }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+        {["M","T","W","T","F","S","S"].map((d, i) => (
+          <div key={i} style={{ flex: 1, fontSize: 9, color: T.creamDim, textAlign: "center" }}>{d}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TipCard({ tip }: { tip: string }) {
+  return (
+    <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Lightbulb size={14} color={T.accent} />
+        <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>TIP OF THE DAY</div>
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, color: T.cream }}>{tip}</div>
+    </div>
+  );
+}
+
+function FactCard({ fact }: { fact: string }) {
+  return (
+    <div style={{ background: `linear-gradient(135deg, ${T.bg3}, ${T.bg2})`, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <Sparkles size={14} color={T.accent} />
+        <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim }}>FUN FACT</div>
+      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.55, color: T.cream, fontStyle: "italic" }}>"{fact}"</div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export function Dashboard() {
+  const navigate = useNavigate();
+  const { settings, setSettingsOpen, brewLog, beanLog } = useAppContext();
+  const { isDesktop } = useViewport();
+
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const padX = isDesktop ? 60 : 26;
+
+  const tipOfTheDay  = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
+  const factOfTheDay = useMemo(() => FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)], []);
+
+  return (
+    <div style={{ padding: `${isDesktop ? 50 : 60}px ${padX}px 60px`, minHeight: "100vh", maxWidth: isDesktop ? 1000 : "none", margin: "0 auto", width: "100%" }}>
+      {/* Logo row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isDesktop ? 50 : 70 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 24, height: 24, background: T.cream, borderRadius: 7, display: "grid", placeItems: "center", color: T.bg, fontSize: 12 }}>✿</div>
+          <div style={{ fontSize: 12, letterSpacing: "0.2em", color: T.creamDim }}>BLOOM <span style={{ color: T.accent }}>&amp;</span> BREW</div>
+        </div>
+        {!isDesktop && (
+          <button onClick={() => setSettingsOpen(true)} style={iconBtn}>
+            <Settings size={16} color={T.cream} />
+          </button>
+        )}
+      </div>
+
+      {/* Greeting */}
+      <div style={{ marginBottom: 50 }}>
+        <div style={{ fontSize: 13, color: T.creamDim, marginBottom: 12, letterSpacing: "0.1em" }}>
+          {greet}{settings.name ? `, ${settings.name}` : ""}.
+        </div>
+        <div style={{ fontSize: isDesktop ? 60 : 42, fontWeight: 200, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
+          What are we{isDesktop ? " " : <br />}brewing today?
+        </div>
+      </div>
+
+      {/* Cards grid */}
+      {isDesktop ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 22, marginBottom: 22 }}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <button onClick={() => navigate("/methods")} style={{
+              background: T.cream, color: T.bg, border: "none", padding: "30px 32px",
+              borderRadius: 22, display: "flex", justifyContent: "space-between",
+              alignItems: "center", cursor: "pointer", fontFamily: FONT,
+            }}>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.6 }}>Start</div>
+                <div style={{ fontSize: 32, fontWeight: 300, marginTop: 6 }}>New brew</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>Nine methods · Including milk drinks</div>
+              </div>
+              <ChevronRight size={28} />
+            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <DashCard onClick={() => navigate("/journal")}  icon={<Book size={18} />}    label="Brew journal"   sub={`${brewLog.length} logged`} />
+              <DashCard onClick={() => navigate("/discover")} icon={<Compass size={18} />} label="Discover beans" sub="Indian roasters" />
+              <DashCard onClick={() => navigate("/cafes")}    icon={<MapPin size={18} />}  label="Cafes near me"  sub="Find a spot" />
+              <DashCard onClick={() => navigate("/glossary")} icon={<Book size={18} />}    label="Coffee glossary" sub="Learn the lingo" />
+              <DashCard onClick={() => navigate("/submit")}   icon={<Plus size={18} />}    label="Add new recipe" sub="Share with us" />
+              <DashCard onClick={() => navigate("/beans")}    icon={<Coffee size={18} />}  label="Bean Log"       sub={`${beanLog.length} active`} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 14 }}>
+            <WeekStats />
+            <TipCard tip={tipOfTheDay} />
+            <FactCard fact={factOfTheDay} />
+          </div>
+        </div>
+      ) : (
+        <>
+          <button onClick={() => navigate("/methods")} style={{
+            width: "100%", background: T.cream, color: T.bg, border: "none",
+            padding: "22px 26px", borderRadius: 18, display: "flex",
+            justifyContent: "space-between", alignItems: "center", marginBottom: 14,
+            cursor: "pointer", fontFamily: FONT,
+          }}>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", opacity: 0.6 }}>Start</div>
+              <div style={{ fontSize: 22, fontWeight: 300, marginTop: 4 }}>New brew</div>
+            </div>
+            <ChevronRight size={22} />
+          </button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <DashCard onClick={() => navigate("/journal")}   icon={<Book size={18} />}    label="Brew journal"   sub={`${brewLog.length} logged`} />
+            <DashCard onClick={() => navigate("/discover")}  icon={<Compass size={18} />} label="Discover beans" sub="Indian roasters" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <DashCard onClick={() => navigate("/cafes")}    icon={<MapPin size={18} />} label="Cafes near me" sub="Find a spot" />
+            <DashCard onClick={() => navigate("/glossary")} icon={<Book size={18} />}   label="Glossary"      sub="Coffee terms" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }}>
+            <DashCard onClick={() => navigate("/beans")}     icon={<Coffee size={18} />} label="Bean log"    sub={`${beanLog.length} active`} />
+            <DashCard onClick={() => navigate("/community")} icon={<Users size={18} />}  label="Community"   sub="142 today" />
+          </div>
+          <div style={{ display: "grid", gap: 14, marginBottom: 22 }}>
+            <TipCard tip={tipOfTheDay} />
+            <FactCard fact={factOfTheDay} />
+          </div>
+          <WeekStats />
+        </>
+      )}
+    </div>
+  );
+}

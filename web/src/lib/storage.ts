@@ -1,4 +1,4 @@
-import type { JournalEntry, UserSettings } from "../types";
+import type { Bean, JournalEntry, UserSettings } from "../types";
 
 // ─── Schema version ────────────────────────────────────────────────────────
 // Bump this whenever a stored type's shape changes in a breaking way.
@@ -15,6 +15,7 @@ const VERSION_KEY = "bbrew_schema_version";
 export interface StorageSchema {
   bbrew_journal: JournalEntry[];
   bbrew_settings: UserSettings;
+  bbrew_bean_log: Bean[];
   bbrew_selected_grinder: string;   // grinder.id
   bbrew_selected_bean: string;      // free-text bean name last used
   bbrew_selected_recipe: string;    // recipeId last used
@@ -26,6 +27,7 @@ export type StorageKey = keyof StorageSchema;
 const DATA_KEYS: StorageKey[] = [
   "bbrew_journal",
   "bbrew_settings",
+  "bbrew_bean_log",
   "bbrew_selected_grinder",
   "bbrew_selected_bean",
   "bbrew_selected_recipe",

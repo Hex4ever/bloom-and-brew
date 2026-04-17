@@ -1,121 +1,122 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { createBrowserRouter, RouterProvider, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { AppContextProvider, useAppContext } from "./AppContext";
+import { BottomNav } from "./components/BottomNav";
+import { Sidebar } from "./components/Sidebar";
+import { SettingsModal } from "./components/SettingsModal";
+import { useViewport } from "./components/ui";
+import type { NavScreen } from "./components/BottomNav";
+import type { SidebarScreen } from "./components/Sidebar";
+import {
+  Dashboard,
+  MethodPicker,
+  Setup,
+  RecipeList,
+  Brew,
+  Rating,
+  Journal,
+  Tweak,
+  Discover,
+  Cafes,
+  Glossary,
+  Community,
+  SubmitRecipe,
+  BeanLog,
+  ScanBean,
+} from "./pages";
 
-function App() {
-  const [count, setCount] = useState(0)
+// ─── Screen name ↔ path mapping ──────────────────────────────────────────────
+
+const SCREEN_TO_PATH: Record<string, string> = {
+  welcome:  "/",
+  methods:  "/methods",
+  setup:    "/setup",
+  recipes:  "/recipes",
+  brew:     "/brew",
+  journal:  "/journal",
+  discover: "/discover",
+  cafes:    "/cafes",
+  beans:    "/beans",
+  feed:     "/community",
+  glossary: "/glossary",
+};
+
+const PATH_TO_SCREEN: Record<string, string> = Object.fromEntries(
+  Object.entries(SCREEN_TO_PATH).map(([k, v]) => [v, k]),
+);
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+function Layout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isDesktop } = useViewport();
+  const { settings, setSettings, settingsOpen, setSettingsOpen } = useAppContext();
+
+  const currentScreen = PATH_TO_SCREEN[location.pathname] ?? location.pathname.slice(1);
+
+  const go = (screen: NavScreen | SidebarScreen) => {
+    const path = SCREEN_TO_PATH[screen] ?? `/${screen}`;
+    navigate(path);
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      {isDesktop && (
+        <Sidebar
+          screen={currentScreen}
+          go={go}
+          openSettings={() => setSettingsOpen(true)}
+        />
+      )}
 
-      <div className="ticks"></div>
+      <div style={{ flex: 1, paddingBottom: isDesktop ? 0 : 72, minWidth: 0 }}>
+        <Outlet />
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {!isDesktop && (
+        <BottomNav screen={currentScreen} go={go} />
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {settingsOpen && (
+        <SettingsModal
+          settings={settings}
+          setSettings={setSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+    </div>
+  );
 }
 
-export default App
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+const router = createBrowserRouter([
+  {
+    element: (
+      <AppContextProvider>
+        <Layout />
+      </AppContextProvider>
+    ),
+    children: [
+      { path: "/",           element: <Dashboard /> },
+      { path: "/methods",    element: <MethodPicker /> },
+      { path: "/setup",      element: <Setup /> },
+      { path: "/recipes",    element: <RecipeList /> },
+      { path: "/brew",       element: <Brew /> },
+      { path: "/rating",     element: <Rating /> },
+      { path: "/journal",    element: <Journal /> },
+      { path: "/tweak",      element: <Tweak /> },
+      { path: "/discover",   element: <Discover /> },
+      { path: "/cafes",      element: <Cafes /> },
+      { path: "/glossary",   element: <Glossary /> },
+      { path: "/community",  element: <Community /> },
+      { path: "/submit",     element: <SubmitRecipe /> },
+      { path: "/beans",      element: <BeanLog /> },
+      { path: "/scan",       element: <ScanBean /> },
+    ],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
