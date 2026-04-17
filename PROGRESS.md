@@ -2,11 +2,11 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-16 (end of session 3)
-**Current phase:** Phase 0 — Project foundation (7 of 14 tasks done)
+**Last updated:** 2026-04-17 (session 4)
+**Current phase:** Phase 0 — Project foundation (8 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** `789ee2c` — feat(lib): port four pure-logic modules
+**Head of `main`:** `d10fdd0` — feat(lib): add typed localStorage wrapper with schema versioning
 
 ---
 
@@ -32,8 +32,9 @@ When you open a new session:
 - [x] #5 Define TypeScript data models in `web/src/types/`
 - [x] #6 Port static data into `web/src/data/`
 - [x] **#7 Port pure logic to `web/src/lib/` + unit tests**
-- [ ] **#8 Build `web/src/lib/storage.ts`** ← next up — typed localStorage wrapper with a schema version field (so the Supabase swap in Phase 3 is one file's worth of change)
-- [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`
+- [x] **#8 Build `web/src/lib/storage.ts`** — typed localStorage wrapper with schema versioning
+- [ ] **#9 Port shared components to `web/src/components/`** ← next up
+- [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`  ← next
 - [ ] #10 Port pages to `web/src/pages/`: Dashboard, MethodPicker, Setup, RecipeList, PreBrew, Brewing, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog. Install `react-router-dom` and wire routing.
 - [ ] #11 Port CSS to `web/src/styles/` — keep every CSS variable name identical; split by concern (base, layout, components)
 - [ ] #12 ESLint + Prettier + Husky pre-commit; add npm scripts `lint`, `format`, `typecheck`
@@ -44,16 +45,15 @@ When you open a new session:
 
 ---
 
-## Next up: Task #8 — `web/src/lib/storage.ts`
+## Next up: Task #9 — Port shared components to `web/src/components/`
 
-Typed localStorage wrapper with a schema-version field so the Supabase swap in Phase 3 is one file's worth of change.
+Components to port (all from `reference/index.html`): `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`.
 
-Key design points:
-- Generic `get<T>(key, fallback)` / `set<T>(key, value)` / `remove(key)` with JSON serialisation.
-- A `SCHEMA_VERSION` constant exported alongside the wrapper; stored in `localStorage` under `bbrew_schema_version`. If the stored version doesn't match, wipe stale keys (prevents silent corruption when types change across deploys).
-- Typed key enum / literal union — only known keys can be passed, no stringly-typed access.
-- Tests with `vi.stubGlobal('localStorage', ...)` or Vitest's built-in `localStorage` (jsdom/happy-dom env not needed for unit tests — stub a minimal Map-backed implementation).
-- Commit: `feat(lib): add typed localStorage wrapper with schema versioning`.
+Each component should:
+- Be a `.tsx` file with typed props.
+- Import from `../types` and `../data` as needed.
+- Not depend on any page-level state — props-only, no global state coupling yet.
+- Have a co-located `.test.tsx` where behaviour is testable (render + interaction; skip purely visual assertions).
 
 ---
 
@@ -109,6 +109,7 @@ bloombrewvs/
         recipeScaling.ts + recipeScaling.test.ts
         flavorMatch.ts + flavorMatch.test.ts
         tweakEngine.ts + tweakEngine.test.ts
+        storage.ts + storage.test.ts
       styles/.gitkeep            empty (task #11)
 ```
 
@@ -124,6 +125,16 @@ Working tree is clean. Everything is committed.
 - Pinned Node 22.17.0 per-project via `.nvmrc`; system Node 18 untouched.
 - Scaffolded Vite 8 + React 19 + TypeScript 6 in `web/`.
 - Original `git init` happened at `/Users/praveenkumarv/PycharmProjects/bloomanbrew` — that path is now abandoned.
+
+### Session 4 (2026-04-17) — storage wrapper
+
+- Built `web/src/lib/storage.ts` (task #8):
+  - `StorageSchema` interface maps all `bbrew_` keys to their TS types (journal, settings, grinder, bean, recipe).
+  - `StorageKey` union type enforces compile-time safety on all get/set/remove calls.
+  - `SCHEMA_VERSION = 1`; `initStorage()` wipes all data keys on mismatch so stale shapes never reach the app.
+  - `get<K>`, `set<K>`, `remove`, `clearAll` helpers — JSON round-trip, fallback on parse error.
+  - 18 tests (storage.test.ts); 100 tests total, all green; `tsc --noEmit` clean.
+  - Committed as `d10fdd0`.
 
 ### Session 3 (2026-04-16) — pure-logic lib + vitest
 - Installed vitest 3.x + @vitest/coverage-v8; added `test`, `test:run`, `test:cov` scripts to `web/package.json` (task #7a).
