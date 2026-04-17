@@ -11,9 +11,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:cov": "vitest run --coverage",
+    "test": "vitest --config vitest.config.ts",
+    "test:run": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
     "prepare": "cd .. && git config core.hooksPath .husky"
   },
   "dependencies": {
