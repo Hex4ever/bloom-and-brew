@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { AppContextProvider, useAppContext } from "./AppContext";
+import { AppProvider, useAppContext } from "./AppContext";
 import { BottomNav } from "./components/BottomNav";
 import { Sidebar } from "./components/Sidebar";
 import { SettingsModal } from "./components/SettingsModal";
@@ -44,6 +44,9 @@ const PATH_TO_SCREEN: Record<string, string> = Object.fromEntries(
   Object.entries(SCREEN_TO_PATH).map(([k, v]) => [v, k]),
 );
 
+// Screens where BottomNav is hidden (full-bleed pages)
+const NO_BOTTOM_NAV = new Set(["/", "/brew"]);
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 function Layout() {
@@ -53,36 +56,53 @@ function Layout() {
   const { settings, setSettings, settingsOpen, setSettingsOpen } = useAppContext();
 
   const currentScreen = PATH_TO_SCREEN[location.pathname] ?? location.pathname.slice(1);
+  const showBottomNav = !isDesktop && !NO_BOTTOM_NAV.has(location.pathname);
 
   const go = (screen: NavScreen | SidebarScreen) => {
     const path = SCREEN_TO_PATH[screen] ?? `/${screen}`;
     navigate(path);
   };
 
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {isDesktop && (
-        <Sidebar
-          screen={currentScreen}
-          go={go}
-          openSettings={() => setSettingsOpen(true)}
-        />
-      )}
-
-      <div style={{ flex: 1, paddingBottom: isDesktop ? 0 : 72, minWidth: 0 }}>
-        <Outlet />
+  if (isDesktop) {
+    return (
+      <div style={{
+        fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+        background: "#0a0807", color: "#ebe0c8",
+        minHeight: "100vh", display: "flex", letterSpacing: "0.01em",
+      }}>
+        <Sidebar screen={currentScreen} go={go} openSettings={() => setSettingsOpen(true)} />
+        <div style={{ flex: 1, minHeight: "100vh", display: "flex", justifyContent: "center" }}>
+          <div style={{ width: "100%", maxWidth: 1100, position: "relative" }}>
+            <div className="fade-up" key={location.pathname}>
+              <Outlet />
+            </div>
+          </div>
+        </div>
+        {settingsOpen && (
+          <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />
+        )}
       </div>
+    );
+  }
 
-      {!isDesktop && (
-        <BottomNav screen={currentScreen} go={go} />
-      )}
-
+  return (
+    <div style={{
+      fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      background: "#0a0807", color: "#ebe0c8",
+      minHeight: "100vh", display: "flex", justifyContent: "center", letterSpacing: "0.01em",
+    }}>
+      <div style={{
+        width: "100%", maxWidth: 440, minHeight: "100vh", background: "#0a0807",
+        position: "relative", paddingBottom: 80,
+        borderLeft: "1px solid #2a2421", borderRight: "1px solid #2a2421",
+      }}>
+        <div className="fade-up" key={location.pathname}>
+          <Outlet />
+        </div>
+        {showBottomNav && <BottomNav screen={currentScreen} go={go} />}
+      </div>
       {settingsOpen && (
-        <SettingsModal
-          settings={settings}
-          setSettings={setSettings}
-          onClose={() => setSettingsOpen(false)}
-        />
+        <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );
@@ -93,9 +113,9 @@ function Layout() {
 const router = createBrowserRouter([
   {
     element: (
-      <AppContextProvider>
+      <AppProvider>
         <Layout />
-      </AppContextProvider>
+      </AppProvider>
     ),
     children: [
       { path: "/",           element: <Dashboard /> },

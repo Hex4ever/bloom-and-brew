@@ -2,11 +2,11 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-17 (session 6)
-**Current phase:** Phase 0 — Project foundation (12 of 14 tasks done)
+**Last updated:** 2026-04-17 (session 7)
+**Current phase:** Phase 0 — Project foundation (13 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** TBD — feat(tooling): task #12 — ESLint tighten + Prettier + Husky pre-commit
+**Head of `main`:** TBD — fix(layout): task #13 — visual-parity fixes
 
 ---
 
@@ -37,16 +37,16 @@ When you open a new session:
 - [x] **#10 Port pages to `web/src/pages/`** — all 15 pages ported (Dashboard, MethodPicker, Setup, RecipeList, Brew, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog, ScanBean). `react-router-dom` v6 installed, `createBrowserRouter + RouterProvider` wired in `App.tsx`, `AppContext` provides write-through localStorage persistence via `storage.ts`, `initStorage()` called on startup in `main.tsx`.
 - [x] **#11 Port CSS to `web/src/styles/`** — `tokens.css` (CSS custom properties mirroring `T`), `base.css` (reset + html/body/button), `animations.css` (all 10 keyframes + `.fade-up`, `.scrollx`); `index.css` now imports all three; old Vite defaults removed; `App.css` cleared; `noUnusedLocals` fix in `Journal.tsx` (stale `SCORE_AXES` import + spurious `axes` prop).
 - [x] **#12 ESLint + Prettier + Husky pre-commit** — Prettier installed (`printWidth:100`, double quotes, trailing commas); `.prettierrc` + `.prettierignore`; `format`, `format:check`, `typecheck` scripts added; ESLint tightened (`no-console` warn, `consistent-type-imports` error); `lint-staged` installed; `.husky/pre-commit` runs `typecheck` then `lint`; `git config core.hooksPath .husky` wired via `prepare` script. Fixed 6 pre-existing lint violations (sync setState in effect in Cafes, `Math.random` in render in Dashboard + Glossary, react-refresh in AppContext + BrewTimer).
-- [ ] #13 Visual-parity check against `reference/index.html` in desktop and mobile widths
+- [x] **#13 Visual-parity check** — Fixed 7 layout gaps vs reference: (1) mobile 440px centering wrapper + side borders, (2) `letterSpacing: 0.01em` on root, (3) desktop `maxWidth: 1100` content constraint, (4) BottomNav hidden on `/` and `/brew`, (5) `paddingBottom: 80` on mobile container, (6) `fade-up` CSS class on route transitions, (7) `<title>` corrected to "Bloom & Brew".
 - [ ] #14 Deploy to Vercel (only once parity is confirmed)
 
 **Exit criteria for Phase 0:** deployed URL looks pixel-identical to opening `reference/index.html` locally, and refreshing no longer wipes the journal.
 
 ---
 
-## Next up: Task #13 — Visual-parity check
+## Next up: Task #14 — Deploy to Vercel
 
-Open `reference/index.html` and `npm run dev` side-by-side at 390px (mobile) and 1280px (desktop). Document any layout or color gaps; fix until pixel-identical. Then task #14 deploys to Vercel.
+Visual parity confirmed. Run `npm run build` to verify the production build is clean, then deploy via `vercel --prod`. Confirm the live URL looks identical to `reference/index.html`.
 
 ---
 
