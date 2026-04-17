@@ -7,7 +7,6 @@ import { Header } from "../components/Header";
 import { Pill } from "../components/Pill";
 import { RatingBars } from "../components";
 import { useAppContext } from "../AppContext";
-import { SCORE_AXES } from "../data";
 import type { JournalEntry } from "../types";
 
 // ─── JournalEntryCard ─────────────────────────────────────────────────────────
@@ -54,7 +53,7 @@ function JournalEntryCard({ entry, idx }: { entry: JournalEntry; idx: number }) 
         </div>
       ) : (
         <div style={{ marginBottom: 14 }}>
-          <RatingBars scores={entry.scores} axes={SCORE_AXES} />
+          <RatingBars scores={entry.scores} />
         </div>
       )}
 

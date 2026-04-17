@@ -2,11 +2,11 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-17 (session 5)
-**Current phase:** Phase 0 — Project foundation (10 of 14 tasks done)
-**Plan of record:** `BUILD_PLAN.md`
+**Last updated:** 2026-04-17 (session 6)
+**Current phase:** Phase 0 — Project foundation (11 of 14 tasks done)
+**Plan of record:** `BUILD_PLAN.MD`
 **Model rules:** `MODELS.md`
-**Head of `main`:** `1547a25` — feat(pages): task #10 — port all 15 pages + wire react-router-dom
+**Head of `main`:** TBD — feat(styles): task #11 — port CSS to web/src/styles/
 
 ---
 
@@ -35,7 +35,7 @@ When you open a new session:
 - [x] **#8 Build `web/src/lib/storage.ts`** — typed localStorage wrapper with schema versioning
 - [x] **#9 Port shared components to `web/src/components/`** — `BottomNav`, `Sidebar`, `SettingsModal`, `PrepChecklist`, `ScoreSlider`, `RatingBars`, `BrewScene`, `BrewTimer`
 - [x] **#10 Port pages to `web/src/pages/`** — all 15 pages ported (Dashboard, MethodPicker, Setup, RecipeList, Brew, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog, ScanBean). `react-router-dom` v6 installed, `createBrowserRouter + RouterProvider` wired in `App.tsx`, `AppContext` provides write-through localStorage persistence via `storage.ts`, `initStorage()` called on startup in `main.tsx`.
-- [ ] #11 Port CSS to `web/src/styles/` — keep every CSS variable name identical; split by concern (base, layout, components)
+- [x] **#11 Port CSS to `web/src/styles/`** — `tokens.css` (CSS custom properties mirroring `T`), `base.css` (reset + html/body/button), `animations.css` (all 10 keyframes + `.fade-up`, `.scrollx`); `index.css` now imports all three; old Vite defaults removed; `App.css` cleared; `noUnusedLocals` fix in `Journal.tsx` (stale `SCORE_AXES` import + spurious `axes` prop).
 - [ ] #12 ESLint + Prettier + Husky pre-commit; add npm scripts `lint`, `format`, `typecheck`
 - [ ] #13 Visual-parity check against `reference/index.html` in desktop and mobile widths
 - [ ] #14 Deploy to Vercel (only once parity is confirmed)
@@ -44,9 +44,9 @@ When you open a new session:
 
 ---
 
-## Next up: Task #11 — Port CSS
+## Next up: Task #12 — ESLint + Prettier + Husky pre-commit
 
-Port all styles from `reference/index.html` into `web/src/styles/`. Keep every CSS variable name identical. Split by concern: base reset, layout, component styles, animations. The existing `web/src/index.css` and `App.css` will be replaced/merged.
+Add `lint`, `format`, `typecheck` npm scripts. Configure ESLint (tighten from Vite default), Prettier, and Husky pre-commit hook so every commit is clean.
 
 ---
 
