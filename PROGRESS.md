@@ -3,10 +3,10 @@
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
 **Last updated:** 2026-04-17 (session 4)
-**Current phase:** Phase 0 — Project foundation (8 of 14 tasks done)
+**Current phase:** Phase 0 — Project foundation (9 of 14 tasks done)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
-**Head of `main`:** `d10fdd0` — feat(lib): add typed localStorage wrapper with schema versioning
+**Head of `main`:** `1603aba` — feat(components): port 8 shared components with tests
 
 ---
 
@@ -33,8 +33,7 @@ When you open a new session:
 - [x] #6 Port static data into `web/src/data/`
 - [x] **#7 Port pure logic to `web/src/lib/` + unit tests**
 - [x] **#8 Build `web/src/lib/storage.ts`** — typed localStorage wrapper with schema versioning
-- [ ] **#9 Port shared components to `web/src/components/`** ← next up
-- [ ] #9 Port shared components to `web/src/components/`: `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`  ← next
+- [x] **#9 Port shared components to `web/src/components/`** — `BottomNav`, `Sidebar`, `SettingsModal`, `PrepChecklist`, `ScoreSlider`, `RatingBars`, `BrewScene`, `BrewTimer`
 - [ ] #10 Port pages to `web/src/pages/`: Dashboard, MethodPicker, Setup, RecipeList, PreBrew, Brewing, Rating, Journal, Tweak, Discover, Cafes, Glossary, Community, SubmitRecipe, BeanLog. Install `react-router-dom` and wire routing.
 - [ ] #11 Port CSS to `web/src/styles/` — keep every CSS variable name identical; split by concern (base, layout, components)
 - [ ] #12 ESLint + Prettier + Husky pre-commit; add npm scripts `lint`, `format`, `typecheck`
@@ -45,15 +44,17 @@ When you open a new session:
 
 ---
 
-## Next up: Task #9 — Port shared components to `web/src/components/`
+## Next up: Task #10 — Port all 15 pages + install routing
 
-Components to port (all from `reference/index.html`): `Timer`, `SVGScene`, `PrepChecklist`, `Sliders`, `RatingBars`, `BottomNav`, `Sidebar`, `SettingsModal`.
+Install `react-router-dom`, define routes in `App.tsx`, then port every page from `reference/index.html` into `web/src/pages/`.
 
-Each component should:
-- Be a `.tsx` file with typed props.
-- Import from `../types` and `../data` as needed.
-- Not depend on any page-level state — props-only, no global state coupling yet.
-- Have a co-located `.test.tsx` where behaviour is testable (render + interaction; skip purely visual assertions).
+Pages to create: `Dashboard`, `MethodPicker`, `Setup`, `RecipeList`, `PreBrew`, `Brewing`, `Rating`, `Journal`, `Tweak`, `Discover`, `Cafes`, `Glossary`, `Community`, `SubmitRecipe`, `BeanLog`.
+
+Key design points:
+- Pages receive no globals — only props and hooks (router params, context).
+- Wire `storage.ts` for journal reads/writes so refreshing persists data (Phase 0 exit criterion).
+- Each page should be a standalone `.tsx`; shared sub-components live in `components/`.
+- Routing: `react-router-dom` v6, `createBrowserRouter` + `RouterProvider` pattern.
 
 ---
 
@@ -102,7 +103,15 @@ bloombrewvs/
         preBrew.ts               PRE_BREW (all 9 methods) + DEFAULT_PRE_BREW
         feed.ts                  3 CommunityPost[] seeds + CommunityPost type
       pages/.gitkeep             empty (task #10)
-      components/.gitkeep        empty (task #9)
+      components/
+        index.ts                 barrel
+        BottomNav.tsx + Sidebar.tsx
+        SettingsModal.tsx        (includes SetField, Toggle, Switch)
+        PrepChecklist.tsx
+        ScoreSlider.tsx + RatingBars.tsx
+        BrewScene.tsx            (6 SVG scene variants)
+        BrewTimer.tsx            (+ PulseDot, fmtTime)
+        components.test.tsx      (38 tests)
       lib/
         .gitkeep
         grinderMath.ts + grinderMath.test.ts
@@ -126,7 +135,25 @@ Working tree is clean. Everything is committed.
 - Scaffolded Vite 8 + React 19 + TypeScript 6 in `web/`.
 - Original `git init` happened at `/Users/praveenkumarv/PycharmProjects/bloomanbrew` — that path is now abandoned.
 
-### Session 4 (2026-04-17) — storage wrapper
+### Session 4 (2026-04-17) — storage wrapper + shared components
+
+**Task #9 (same session):**
+- Created `web/src/styles/theme.ts` — exports design-token object `T` and `FONT` (matches reference exactly).
+- Installed `lucide-react`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `jsdom`, `@testing-library/jest-dom`.
+- Updated `vite.config.ts` to use `test.projects`: `.test.tsx` runs in jsdom, `.test.ts` stays in node.
+- Ported 8 shared components (all from `reference/index.html`) into `web/src/components/`:
+  - `BottomNav` — mobile 5-item nav bar
+  - `Sidebar` — desktop 8-item sticky nav with settings button
+  - `SettingsModal` — overlay with display name, units, temp, music, notifications toggles (+ `SetField`, `Toggle`, `Switch` sub-components)
+  - `PrepChecklist` — collapsible pre-brew checklist with per-step tick-off state
+  - `ScoreSlider` — controlled range input 1-10 for a single rating axis
+  - `RatingBars` — read-only horizontal bar visualization of all 5 rating axes
+  - `BrewScene` — animated SVG brewing visualizer; routes to 6 scene variants (PourOver, Chemex, Aeropress, FrenchPress, Moka, Espresso/Milk)
+  - `BrewTimer` — elapsed/next-step countdown display with progress bar; `fmtTime` and `PulseDot` exported
+- 38 component tests in `components.test.tsx`; 138 tests total, all green; `tsc --noEmit` clean.
+- Committed as `1603aba`.
+
+**Task #8 (earlier):**
 
 - Built `web/src/lib/storage.ts` (task #8):
   - `StorageSchema` interface maps all `bbrew_` keys to their TS types (journal, settings, grinder, bean, recipe).
