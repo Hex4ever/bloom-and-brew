@@ -56,16 +56,16 @@ interface DoneScreenProps {
 
 function DoneScreen({ scaledDose, scaledWater, scaledTemp, clicks, onReset }: DoneScreenProps) {
   const navigate = useNavigate();
-  const { recipe, method, bean, grinder, brewLog, setBrewLog, setPendingBrew } = useAppContext();
+  const { recipe, method, bean, grinder, saveJournalEntry, setPendingBrew } = useAppContext();
   const [overall, setOverall] = useState(7);
   const [saved, setSaved] = useState(false);
 
   if (!recipe || !method) return null;
 
-  const quickSave = () => {
+  const quickSave = async () => {
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    setBrewLog([{
-      id: Date.now().toString(),
+    await saveJournalEntry({
+      id: `temp-${Date.now()}`,
       recipeId: recipe.id, recipeTitle: recipe.title, method: method.id,
       bean: bean?.name ?? "Unknown", grinder: grinder?.name ?? "Unknown",
       date: today,
@@ -73,7 +73,7 @@ function DoneScreen({ scaledDose, scaledWater, scaledTemp, clicks, onReset }: Do
       scores: { sweetness: 5, acidity: 5, body: 5, bitterness: 5, aftertaste: 5, overall },
       notes: "",
       quickLogged: true,
-    }, ...brewLog]);
+    });
     setSaved(true);
   };
 
@@ -122,7 +122,7 @@ function DoneScreen({ scaledDose, scaledWater, scaledTemp, clicks, onReset }: Do
         </div>
       </div>
       <div style={{ display: "grid", gap: 10 }}>
-        <button onClick={quickSave} style={{ ...primaryBtn, width: "100%" }}>Save to profile</button>
+        <button onClick={() => void quickSave()} style={{ ...primaryBtn, width: "100%" }}>Save to profile</button>
         <button onClick={detailedLog} style={{ ...ghostBtn, width: "100%" }}>Rate in detail (5 axes + notes)</button>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => navigate("/community")} style={{ flex: 1, background: "transparent", border: "none", color: T.creamDim, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", padding: 12, cursor: "pointer", fontFamily: FONT }}>Share</button>

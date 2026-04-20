@@ -141,7 +141,7 @@ interface AppContextValue {
   deleteBean: (id: string) => Promise<void>;
   brewLog: JournalEntry[];
   setBrewLog: (log: JournalEntry[]) => void;
-  saveJournalEntry: (entry: JournalEntry) => Promise<JournalEntry>;
+  saveJournalEntry: (entry: JournalEntry) => Promise<JournalEntry | null>;
   settings: UserSettings;
   setSettings: (s: UserSettings) => void;
   settingsOpen: boolean;
@@ -281,10 +281,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ─── DB mutations ──────────────────────────────────────────────────────────
 
-  const saveJournalEntry = useCallback(async (entry: JournalEntry): Promise<JournalEntry> => {
+  const saveJournalEntry = useCallback(async (entry: JournalEntry): Promise<JournalEntry | null> => {
     const isUpdate = !!entry.id && brewLog.some(e => e.id === entry.id);
 
-    // Optimistic update — also write to localStorage so refresh survives a DB failure
+    // Optimistic update — rolled back in the error path below if DB write fails
     if (isUpdate) {
       setBrewLog(brewLog.map(e => e.id === entry.id ? entry : e));
     } else {
@@ -318,7 +318,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error) { console.error("journal update failed:", error.message); setDbError(error.message); return entry; }
+      if (error) { console.error("journal update failed:", error.message); setDbError(error.message); return null; }
       if (!data) return entry;
       const updated = dbJournalToLocal(data as unknown as DbJournal);
       setBrewLog(brewLog.map(e => e.id === entry.id ? updated : e));
@@ -348,7 +348,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error) { console.error("journal insert failed:", error.message); setDbError(error.message); return entry; }
+      if (error) {
+        console.error("journal insert failed:", error.message);
+        setDbError(error.message);
+        // Roll back optimistic update so localStorage stays in sync with DB
+        setBrewLog(brewLog.filter(e => e.id !== entry.id));
+        return null;
+      }
       if (!data) return entry;
       const saved = dbJournalToLocal(data as unknown as DbJournal);
       // Replace temp entry with the DB-assigned UUID and sync localStorage

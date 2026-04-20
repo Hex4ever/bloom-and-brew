@@ -57,10 +57,9 @@ export function Rating() {
       quickLogged: false,
     };
 
-    await saveJournalEntry(entry);
+    const saved = await saveJournalEntry(entry);
     setSaving(false);
-    // dbError will be set by AppContext if the DB insert failed — show it, don't navigate yet
-    if (dbError) return;
+    if (!saved) return; // dbError set by AppContext — stay on page so error banner renders
     setPendingBrew(null);
     navigate("/journal");
   };
