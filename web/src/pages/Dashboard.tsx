@@ -124,7 +124,7 @@ export function Dashboard() {
       {isDesktop ? (
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 22, marginBottom: 22 }}>
           <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
-            <button onClick={() => navigate("/methods")} style={{
+            <button onClick={() => navigate("/setup")} style={{
               background: T.cream, color: T.bg, border: "none", padding: "30px 32px",
               borderRadius: 22, display: "flex", justifyContent: "space-between",
               alignItems: "center", cursor: "pointer", fontFamily: FONT,
@@ -153,7 +153,7 @@ export function Dashboard() {
         </div>
       ) : (
         <>
-          <button onClick={() => navigate("/methods")} style={{
+          <button onClick={() => navigate("/setup")} style={{
             width: "100%", background: T.cream, color: T.bg, border: "none",
             padding: "22px 26px", borderRadius: 18, display: "flex",
             justifyContent: "space-between", alignItems: "center", marginBottom: 14,

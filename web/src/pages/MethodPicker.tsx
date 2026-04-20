@@ -50,7 +50,7 @@ export function MethodPicker() {
                 {methods.map((m, i) => (
                   <button
                     key={m.id}
-                    onClick={() => { setMethod(m); navigate("/setup"); }}
+                    onClick={() => { setMethod(m); navigate("/recipes"); }}
                     className="fade-up"
                     style={{
                       display: "flex", alignItems: "center", gap: 18,
