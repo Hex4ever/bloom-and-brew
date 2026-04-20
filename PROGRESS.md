@@ -122,12 +122,13 @@ When you open a new session:
 - [x] `BeanLog.tsx` — replaced header icon buttons + inline add form with two side-by-side cards: "Scan packaging" and "Enter manually"; both navigate to `/scan` with correct state
 - [x] `Setup.tsx` — bean picker in brew flow updated to show "Scan packaging" + "Enter manually" side by side (was single scan button only)
 - [x] Edge Function deployed: `supabase functions deploy scan-bean --no-verify-jwt`
-- [x] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places Nearby Search (New API) → deployed; `Cafes.tsx` calls Edge Function on geolocation grant, falls back to `CAFES` demo data on denial or error; 24h `cafes_cache` grid-bucketed; `GOOGLE_PLACES_API_KEY` secret must be set in Supabase dashboard
+- [x] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places Nearby Search (New API) → deployed; `Cafes.tsx` calls Edge Function on geolocation grant, falls back to `CAFES` demo data on denial or error; 24h `cafes_cache` grid-bucketed; `GOOGLE_PLACES_API_KEY` set in Supabase secrets — confirmed working 2026-04-20
 - [ ] 5c — Jazz audio: wire toggle to actual playback (royalty-free stream or embedded player)
 
 **Exit criteria for Phase 5:** photograph a real coffee bag → fields auto-populate; cafes show real nearby results; jazz plays.
 
 **5a confirmed working:** Claude Vision reads real coffee bag labels and populates bean form fields — 2026-04-20.
+**5b confirmed working:** Real nearby cafes returned from Google Places — 2026-04-20.
 
 ## Next up: Phase 5c — Jazz audio
 
@@ -140,22 +141,7 @@ After 5c: move to Phase 6 — PWA manifest + service worker + notifications.
 
 ---
 
-## API key still needed for 5b to go live
-
-The `cafes-nearby` Edge Function is deployed but will return a 503 until the secret is set:
-
-```
-supabase secrets set GOOGLE_PLACES_API_KEY=<your_key>
-```
-
-To get the key:
-1. Go to https://console.cloud.google.com → create / select a project
-2. APIs & Services → Enable → **Places API (New)**
-3. Credentials → Create API key → restrict to "Places API (New)"
-
----
-
-## What's on disk now (as of 2026-04-20 end of session 11)
+## What's on disk now (as of 2026-04-20 end of session 14)
 
 ```
 bloombrewvs/
