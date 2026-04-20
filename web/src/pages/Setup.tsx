@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Camera } from "lucide-react";
+import { Check, Camera, PenLine } from "lucide-react";
 import { T } from "../styles/theme";
 import { useViewport, primaryBtn } from "../components/ui";
 import { Header } from "../components/Header";
@@ -61,18 +61,30 @@ export function Setup() {
             <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Your beans</div>
             <div style={{ fontSize: 12, color: T.creamDim, marginBottom: 26 }}>Pick from your log or scan a new bag.</div>
 
-            <button onClick={() => navigate("/scan")} style={{
-              width: "100%", padding: "22px 22px",
-              border: `1px dashed ${T.line}`, background: T.bg2,
-              color: T.cream, borderRadius: 14, marginBottom: 18,
-              display: "flex", alignItems: "center", gap: 14, cursor: "pointer",
-            }}>
-              <Camera size={18} color={T.accent} />
-              <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 14 }}>Scan packaging</div>
-                <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>Auto-fill from photo</div>
-              </div>
-            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+              <button onClick={() => navigate("/scan", { state: { mode: "scan" } })} style={{
+                padding: "18px 16px", border: `1px dashed ${T.line}`, background: T.bg2,
+                color: T.cream, borderRadius: 14, display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 8, cursor: "pointer",
+              }}>
+                <Camera size={18} color={T.accent} />
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 13 }}>Scan packaging</div>
+                  <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>Auto-fill from photo</div>
+                </div>
+              </button>
+              <button onClick={() => navigate("/scan", { state: { mode: "manual" } })} style={{
+                padding: "18px 16px", border: `1px dashed ${T.line}`, background: T.bg2,
+                color: T.cream, borderRadius: 14, display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 8, cursor: "pointer",
+              }}>
+                <PenLine size={18} color={T.accent} />
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 13 }}>Enter manually</div>
+                  <div style={{ fontSize: 11, color: T.creamDim, marginTop: 2 }}>Type in the details</div>
+                </div>
+              </button>
+            </div>
 
             <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim, marginBottom: 12 }}>FROM YOUR LOG</div>
             <div style={{ display: "grid", gap: 10, marginBottom: 30 }}>
