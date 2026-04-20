@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Shuffle, ChevronRight, Plus, X } from "lucide-react";
+import { Sparkles, Shuffle, ChevronRight, Plus, X, Users } from "lucide-react";
 import { T, FONT } from "../styles/theme";
 import { useViewport, primaryBtn, inputStyle } from "../components/ui";
 import { Header } from "../components/Header";
@@ -8,7 +8,18 @@ import { Pill } from "../components/Pill";
 import { useAppContext } from "../AppContext";
 import { RECIPES, METHODS } from "../data";
 import { flavorMatch, parseFlavorText } from "../lib/flavorMatch";
+import { supabase } from "../lib/supabase";
 import type { MethodId } from "../types";
+
+interface CommunityRecipe {
+  id: string;
+  title: string;
+  method: string;
+  dose_g: number | null;
+  water_g: number | null;
+  temp_c: number | null;
+  notes: string | null;
+}
 
 const SUGGESTIONS = [
   "bright and fruity",
@@ -27,6 +38,15 @@ export function RecipeList() {
   const [flavorText, setFlavorText] = useState("");
   const [flavorResults, setFlavorResults] = useState<ReturnType<typeof flavorMatch> | null>(null);
   const [flavorMatched, setFlavorMatched] = useState<string[]>([]);
+  const [communityRecipes, setCommunityRecipes] = useState<CommunityRecipe[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("recipe_submissions")
+      .select("id, title, method, dose_g, water_g, temp_c, notes")
+      .eq("status", "approved")
+      .then(({ data }) => { if (data) setCommunityRecipes(data); });
+  }, []);
 
   useEffect(() => {
     if (!method) navigate("/methods", { replace: true });
@@ -190,7 +210,7 @@ export function RecipeList() {
           </button>
         </div>
 
-        {/* Recipe cards */}
+        {/* Curated recipe cards */}
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr" }}>
           {list.map((r, i) => (
             <button key={r.id} onClick={() => { setRecipe(r); navigate("/brew"); }}
@@ -210,6 +230,30 @@ export function RecipeList() {
             </button>
           ))}
         </div>
+
+        {/* Community-submitted approved recipes */}
+        {communityRecipes.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Users size={13} color={T.creamDim} />
+              <div style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim }}>FROM THE COMMUNITY</div>
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {communityRecipes.map((r) => (
+                <div key={r.id} style={{ padding: "16px 18px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14, color: T.cream }}>
+                  <div style={{ fontSize: 14, marginBottom: 6 }}>{r.title}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {r.dose_g && <Pill>{r.dose_g}g</Pill>}
+                    {r.water_g && <Pill>{r.water_g}g water</Pill>}
+                    {r.temp_c && <Pill>{r.temp_c}°C</Pill>}
+                    <Pill dim>{r.method.toUpperCase()}</Pill>
+                  </div>
+                  {r.notes && <div style={{ fontSize: 11, color: T.creamDim, marginTop: 8, fontStyle: "italic" }}>{r.notes}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

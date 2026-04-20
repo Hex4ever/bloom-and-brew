@@ -10,7 +10,7 @@ import { SCORE_AXES } from "../data";
 
 export function Rating() {
   const navigate = useNavigate();
-  const { pendingBrew, setPendingBrew, brewLog, setBrewLog } = useAppContext();
+  const { pendingBrew, setPendingBrew, saveJournalEntry } = useAppContext();
   const { isDesktop } = useViewport();
 
   const [scores, setScores] = useState({
@@ -29,7 +29,7 @@ export function Rating() {
   const save = () => {
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const entry = {
-      id: pendingBrew.existingId ?? Date.now().toString(),
+      id: pendingBrew.existingId ?? `temp-${Date.now()}`,
       recipeId:    pendingBrew.recipeId,
       recipeTitle: pendingBrew.recipeTitle,
       method:      pendingBrew.method,
@@ -52,14 +52,11 @@ export function Rating() {
       quickLogged: false,
     };
 
-    if (pendingBrew.existingId) {
-      setBrewLog(brewLog.map((e) => e.id === pendingBrew.existingId ? entry : e));
-    } else {
-      setBrewLog([entry, ...brewLog]);
-    }
+    void saveJournalEntry(entry);
     setPendingBrew(null);
     navigate("/journal");
   };
+
 
   return (
     <div>

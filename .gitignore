@@ -49,3 +49,7 @@ Thumbs.db
 
 # Supabase
 .supabase/
+supabase/.temp/
+
+# Google OAuth client secrets
+client_secret*.json

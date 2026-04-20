@@ -1,11 +1,16 @@
 import { createBrowserRouter, RouterProvider, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./AppContext";
+import { AuthProvider, useAuth } from "./AuthContext";
 import { BottomNav } from "./components/BottomNav";
 import { Sidebar } from "./components/Sidebar";
 import { SettingsModal } from "./components/SettingsModal";
+import { RequireAuth } from "./components/RequireAuth";
 import { useViewport } from "./components/ui";
 import type { NavScreen } from "./components/BottomNav";
 import type { SidebarScreen } from "./components/Sidebar";
+import { SignIn } from "./pages/auth/SignIn";
+import { SignUp } from "./pages/auth/SignUp";
+import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import {
   Dashboard,
   MethodPicker,
@@ -54,6 +59,7 @@ function Layout() {
   const location = useLocation();
   const { isDesktop } = useViewport();
   const { settings, setSettings, settingsOpen, setSettingsOpen } = useAppContext();
+  const { signOut } = useAuth();
 
   const currentScreen = PATH_TO_SCREEN[location.pathname] ?? location.pathname.slice(1);
   const showBottomNav = !isDesktop && !NO_BOTTOM_NAV.has(location.pathname);
@@ -79,7 +85,7 @@ function Layout() {
           </div>
         </div>
         {settingsOpen && (
-          <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />
+          <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
         )}
       </div>
     );
@@ -102,7 +108,7 @@ function Layout() {
         {showBottomNav && <BottomNav screen={currentScreen} go={go} />}
       </div>
       {settingsOpen && (
-        <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} />
+        <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
       )}
     </div>
   );
@@ -111,32 +117,47 @@ function Layout() {
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 const router = createBrowserRouter([
+  // ── Auth routes (no session required) ──
+  { path: "/signin",          element: <SignIn /> },
+  { path: "/signup",          element: <SignUp /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+
+  // ── Protected app routes ──
   {
     element: (
       <AppProvider>
-        <Layout />
+        <RequireAuth />
       </AppProvider>
     ),
     children: [
-      { path: "/",           element: <Dashboard /> },
-      { path: "/methods",    element: <MethodPicker /> },
-      { path: "/setup",      element: <Setup /> },
-      { path: "/recipes",    element: <RecipeList /> },
-      { path: "/brew",       element: <Brew /> },
-      { path: "/rating",     element: <Rating /> },
-      { path: "/journal",    element: <Journal /> },
-      { path: "/tweak",      element: <Tweak /> },
-      { path: "/discover",   element: <Discover /> },
-      { path: "/cafes",      element: <Cafes /> },
-      { path: "/glossary",   element: <Glossary /> },
-      { path: "/community",  element: <Community /> },
-      { path: "/submit",     element: <SubmitRecipe /> },
-      { path: "/beans",      element: <BeanLog /> },
-      { path: "/scan",       element: <ScanBean /> },
+      {
+        element: <Layout />,
+        children: [
+          { path: "/",           element: <Dashboard /> },
+          { path: "/methods",    element: <MethodPicker /> },
+          { path: "/setup",      element: <Setup /> },
+          { path: "/recipes",    element: <RecipeList /> },
+          { path: "/brew",       element: <Brew /> },
+          { path: "/rating",     element: <Rating /> },
+          { path: "/journal",    element: <Journal /> },
+          { path: "/tweak",      element: <Tweak /> },
+          { path: "/discover",   element: <Discover /> },
+          { path: "/cafes",      element: <Cafes /> },
+          { path: "/glossary",   element: <Glossary /> },
+          { path: "/community",  element: <Community /> },
+          { path: "/submit",     element: <SubmitRecipe /> },
+          { path: "/beans",      element: <BeanLog /> },
+          { path: "/scan",       element: <ScanBean /> },
+        ],
+      },
     ],
   },
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
 }

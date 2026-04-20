@@ -92,9 +92,10 @@ interface Props {
   settings: UserSettings;
   setSettings: (s: UserSettings) => void;
   onClose: () => void;
+  onSignOut?: () => void;
 }
 
-export function SettingsModal({ settings, setSettings, onClose }: Props) {
+export function SettingsModal({ settings, setSettings, onClose, onSignOut }: Props) {
   function set<K extends keyof UserSettings>(k: K, v: UserSettings[K]) {
     setSettings({ ...settings, [k]: v });
   }
@@ -173,6 +174,24 @@ export function SettingsModal({ settings, setSettings, onClose }: Props) {
               A space to brew slower, drink better.
             </div>
           </div>
+
+          {/* Sign out */}
+          {onSignOut && (
+            <div style={{ marginTop: 22, paddingTop: 22, borderTop: `1px solid ${T.line}` }}>
+              <button
+                onClick={onSignOut}
+                style={{
+                  width: "100%", padding: "12px 0",
+                  background: "transparent", border: `1px solid ${T.line}`,
+                  borderRadius: 10, color: T.creamDim,
+                  fontFamily: FONT, fontSize: 13, cursor: "pointer",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

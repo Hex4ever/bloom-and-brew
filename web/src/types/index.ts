@@ -18,3 +18,5 @@ export type { JournalEntry, RatingAxes, RatingAxisKey } from "./journal";
 export type { PrepStep, PrepChecklist, PrepChecklistsByMethod } from "./prep";
 
 export type { UserSettings, Units, TempUnit } from "./settings";
+
+export type { Database, Json } from "./database";

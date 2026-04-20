@@ -102,7 +102,7 @@ Exit criteria: you can sign in on two devices, log a brew on one, and see it app
 
 ## Phase 4 — AI integration (week 6)
 
-Goal: the flavor finder and tweak coach use the Claude API, not hardcoded rules.
+Goal: the tweak coach uses the Claude API to give personalised brew adjustments. The flavor finder stays keyword-based (no AI).
 
 1. **Supabase Edge Function: `tweak-coach`**
    - Input: `journal_entry_id`, `user_message` (optional)
@@ -111,16 +111,12 @@ Goal: the flavor finder and tweak coach use the Claude API, not hardcoded rules.
    - Streams the response back to the client via SSE
    - Persists the turn into `tweak_messages`
    - Enables prompt caching on the system prompt (coffee-science knowledge base)
-2. **Supabase Edge Function: `flavor-finder`**
-   - Input: free-text flavor description, method filter (optional)
-   - Model: `claude-haiku-4-5-20251001` (fast, cheap; flavor matching is a classification task)
-   - Returns: scored recipe IDs with matched flavor keywords
-   - Fallback: if the LLM fails or times out, call the existing rule-based matcher client-side
+2. **Flavor finder — no AI** — keeps the existing client-side keyword matcher against `flavor_profile` fields in recipes; no Edge Function needed
 3. **API key management** — `ANTHROPIC_API_KEY` stored in Supabase Edge Function secrets; never shipped to the client
 4. **Rate limiting** — per-user request budget enforced in the Edge Function (e.g. 50 tweaks/day on free tier) to cap cost
-5. **Graceful degradation** — if the Edge Function is down, UI falls back to the rule-based engines already in the code
+5. **Graceful degradation** — if the Edge Function is down, UI shows a friendly error; flavor finder is unaffected (client-side only)
 
-Exit criteria: flavor finder and tweak coach both return real AI responses end-to-end; API key is not leaked in the client bundle.
+Exit criteria: tweak coach returns real AI responses end-to-end; API key is not leaked in the client bundle; flavor finder works unchanged.
 
 ---
 
@@ -205,7 +201,7 @@ Exit criteria: same user can sign in on web, iOS, and Android and see the same j
 
 ### Cost controls
 - Supabase free tier: 500MB DB, 1GB storage, 2GB egress/month, 500K Edge Function invocations
-- Anthropic API: the biggest variable. Budget rule of thumb: $0.01/user/month at moderate use with Haiku for flavor + Sonnet for tweak. Cap with per-user rate limits.
+- Anthropic API: the biggest variable. Budget rule of thumb: $0.01/user/month at moderate use with Sonnet for tweak coach only. Cap with per-user rate limits. Flavor finder is free (client-side keywords).
 - Google Places: $200/month free credit — more than enough for < 10K cafe searches
 
 ### Testing strategy

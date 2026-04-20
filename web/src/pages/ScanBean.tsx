@@ -5,9 +5,8 @@ import { T } from "../styles/theme";
 import { primaryBtn, inputStyle } from "../components/ui";
 import { Header } from "../components/Header";
 import { useAppContext } from "../AppContext";
-import type { Bean } from "../types";
 
-type DraftFields = Pick<Bean, "name" | "roaster" | "roast" | "notes" | "date">;
+interface DraftFields { name: string; roaster: string; roast: string; notes: string; date: string; }
 
 const FIELDS: [string, keyof DraftFields][] = [
   ["Bean", "name"],
@@ -18,7 +17,7 @@ const FIELDS: [string, keyof DraftFields][] = [
 
 export function ScanBean() {
   const navigate = useNavigate();
-  const { setBeanLog, beanLog, setBean } = useAppContext();
+  const { addBean, setBean } = useAppContext();
 
   const [scanning, setScanning] = useState(false);
   const [done, setDone] = useState(false);
@@ -47,14 +46,9 @@ export function ScanBean() {
     }, 2200);
   };
 
-  const save = () => {
-    const bean: Bean = {
-      id: String(Date.now()),
-      source: "scan",
-      ...draft,
-    };
-    setBeanLog([bean, ...beanLog]);
-    setBean(bean);
+  const save = async () => {
+    const saved = await addBean({ source: "scan", ...draft });
+    setBean(saved);
     navigate(-1);
   };
 
@@ -177,7 +171,7 @@ export function ScanBean() {
             </div>
 
             <button
-              onClick={save}
+              onClick={() => void save()}
               style={{ ...primaryBtn, width: "100%", marginTop: 26 }}
             >
               Save bean

@@ -2,8 +2,8 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-17 (session 7)
-**Current phase:** ✅ Phase 0 complete — moving to Phase 1 (Supabase setup)
+**Last updated:** 2026-04-20 (session 10)
+**Current phase:** Phase 4 in progress — AI integration (tweak coach)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
@@ -46,15 +46,76 @@ When you open a new session:
 
 ---
 
-## Next up: Phase 1 — Supabase setup + schema
+## Phase 1 task checklist
 
-Phase 0 is complete. Phase 1 starts with:
-1. Create Supabase project (free tier) at supabase.com
-2. Install `@supabase/supabase-js` in `web/`
-3. Define the DB schema (see `BUILD_PLAN.md` Phase 1 for all tables)
-4. Write RLS policies
-5. Seed curated data (recipes, grinders, beans, glossary)
-6. Wire `.env` with `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
+- [x] Create Supabase project (free tier) — `rizncfkqyajsivjsrpoi.supabase.co`
+- [x] Install `@supabase/supabase-js` in `web/`
+- [x] `web/src/lib/supabase.ts` — typed client singleton
+- [x] `web/src/types/database.ts` — full TypeScript types for all 11 DB tables
+- [x] `supabase/migrations/001_initial_schema.sql` — all tables, RLS policies, auto-profile trigger
+- [x] `supabase/seed.sql` — 26 curated recipes, 6 grinders, 8 Indian beans
+- [x] `web/.env` + `web/.env.example` — env wiring
+- [x] Smoke test: REST API confirms curated recipes + grinders queryable
+
+**Exit criteria for Phase 1:** ✅ DB schema live, RLS enforced, seeds loaded, client can query curated recipes.
+
+---
+
+## Phase 2 task checklist
+
+- [x] `web/src/AuthContext.tsx` — Supabase session wrapper; `useAuth()` hook exposes `user`, `session`, `loading`, `signIn`, `signUp`, `signInWithMagicLink`, `signOut`, `resetPassword`
+- [x] `web/src/pages/auth/SignIn.tsx` — email+password tab + magic-link tab; matches dark design language
+- [x] `web/src/pages/auth/SignUp.tsx` — name + email + password; confirmation email flow
+- [x] `web/src/pages/auth/ForgotPassword.tsx` — email → reset link
+- [x] `web/src/components/RequireAuth.tsx` — route guard; redirects to `/signin` if no session
+- [x] `App.tsx` — `AuthProvider` wraps everything; `/signin`, `/signup`, `/forgot-password` routes added; all app routes wrapped in `RequireAuth`
+- [x] `AppContext.tsx` — on login, fetches `profiles` row and hydrates settings; `setSettings` upserts to `profiles` when user is present
+- [x] `web/src/types/database.ts` — added `Relationships: []` to all tables (required by Supabase's `GenericTable` constraint)
+- [x] `tsc --noEmit` clean; 138 tests passing
+
+**Exit criteria for Phase 2:** ✅ Two test accounts can sign in and see only their own data; settings survive reload via profiles table.
+
+---
+
+## Phase 3 task checklist
+
+- [x] `supabase/migrations/002_phase3.sql` — `name` on `beans`, `grinder_type` on `grinders`, 8 denormalized display columns on `journal_entries`, `poster_name` on `community_posts`
+- [x] `web/src/types/database.ts` — updated to match migration
+- [x] `AppContext.tsx` — on login fetches journal/beans/grinders from DB; exposes `saveJournalEntry`, `addBean`, `deleteBean`, `availableGrinders`, `dbLoading`; write-through to DB for all mutations; optimistic UI with rollback on insert failure
+- [x] `Rating.tsx` — calls `saveJournalEntry` (DB insert) instead of local `setBrewLog`
+- [x] `BeanLog.tsx` — delete (X button) + manual add form; uses `addBean` / `deleteBean` from context
+- [x] `ScanBean.tsx` — save calls `addBean` (DB insert); no longer mutates beanLog directly
+- [x] `SubmitRecipe.tsx` — inserts to `recipe_submissions` with `status='pending'` on submit
+- [x] `Community.tsx` — fetches posts from DB; creates posts via DB; optimistic like/unlike with `post_likes` toggle + `likes_count` update
+- [x] `RecipeList.tsx` — shows approved community recipes from `recipe_submissions` below curated list
+- [x] `Setup.tsx` — uses `availableGrinders` from context (DB-backed; falls back to static GRINDERS)
+
+**Exit criteria for Phase 3:** sign in on two devices, log a brew on one, see it appear on the other.
+
+**Before testing:** run `002_phase3.sql` in the Supabase SQL editor.
+
+---
+
+## Phase 4 task checklist
+
+- [x] `supabase/functions/tweak-coach/index.ts` — Deno Edge Function: auth check, rate limit (50/day), find-or-create thread, load history, stream Claude Sonnet 4.6 via SSE, persist turn to `tweak_messages`; system prompt marked `cache_control: ephemeral` for prompt caching
+- [x] `web/src/pages/Tweak.tsx` — Q&A section wired to Edge Function; SSE streaming with live typing cursor; rate-limit banner; graceful fallback to local `answerQuestionLocally` when offline/Edge Function error; rules-based diagnosis + suggestions panel unchanged
+- [ ] Set `ANTHROPIC_API_KEY` secret in Supabase dashboard → Project Settings → Edge Functions → Secrets
+- [ ] Deploy Edge Function: `supabase functions deploy tweak-coach --no-verify-jwt` (JWT verified inside the function)
+- [ ] Smoke test end-to-end: ask a question on a real journal entry, confirm streaming works and message persists in DB
+
+**Decision:** Flavor finder stays keyword-based — no AI, no Edge Function needed.
+
+**Before testing:** ANTHROPIC_API_KEY must be set as an Edge Function secret in Supabase.
+
+---
+
+## Next up: Phase 4 — deploy Edge Function + smoke test
+
+Code is written. Next steps to go live:
+1. Add `ANTHROPIC_API_KEY` in Supabase dashboard → Edge Function secrets
+2. `supabase functions deploy tweak-coach`
+3. Test on the deployed app — open a journal entry → Tweak → ask a question
 
 ---
 

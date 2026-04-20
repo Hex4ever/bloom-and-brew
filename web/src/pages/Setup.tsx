@@ -5,11 +5,10 @@ import { T } from "../styles/theme";
 import { useViewport, primaryBtn } from "../components/ui";
 import { Header } from "../components/Header";
 import { useAppContext } from "../AppContext";
-import { GRINDERS } from "../data";
 
 export function Setup() {
   const navigate = useNavigate();
-  const { method, grinder, setGrinder, bean, setBean, beanLog } = useAppContext();
+  const { method, grinder, setGrinder, bean, setBean, beanLog, availableGrinders } = useAppContext();
   const { isDesktop } = useViewport();
   const [stage, setStage] = useState<"grinder" | "beans">("grinder");
 
@@ -34,7 +33,7 @@ export function Setup() {
               We'll convert recipe grind sizes into clicks for your specific model.
             </div>
             <div style={{ display: "grid", gap: 10, marginBottom: 30 }}>
-              {GRINDERS.map((g) => {
+              {availableGrinders.map((g) => {
                 const sel = grinder?.id === g.id;
                 return (
                   <button key={g.id} onClick={() => setGrinder(g)} style={{

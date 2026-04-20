@@ -5,11 +5,14 @@ import { T, FONT } from "../styles/theme";
 import { useViewport, primaryBtn, inputStyle } from "../components/ui";
 import { Header } from "../components/Header";
 import { useAppContext } from "../AppContext";
+import { useAuth } from "../AuthContext";
+import { supabase } from "../lib/supabase";
 import { METHODS } from "../data";
 
 export function SubmitRecipe() {
   const navigate = useNavigate();
   const { method } = useAppContext();
+  const { user } = useAuth();
   const { isDesktop } = useViewport();
 
   const [f, setF] = useState({
@@ -21,10 +24,23 @@ export function SubmitRecipe() {
     notes: "",
   });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const valid = f.title.trim() && f.method;
 
-  const submit = () => {
+  const submit = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    await supabase.from("recipe_submissions").insert({
+      user_id: user.id,
+      method:  f.method,
+      title:   f.title,
+      dose_g:  f.dose ? parseFloat(f.dose) : null,
+      water_g: f.water ? parseFloat(f.water) : null,
+      temp_c:  f.temp ? parseInt(f.temp, 10) : null,
+      notes:   f.notes || null,
+    });
+    setSubmitting(false);
     setSent(true);
     setTimeout(() => navigate(-1), 1200);
   };
@@ -104,11 +120,11 @@ export function SubmitRecipe() {
             </div>
 
             <button
-              onClick={submit}
-              disabled={!valid}
+              onClick={() => void submit()}
+              disabled={!valid || submitting}
               style={{ ...primaryBtn, width: "100%", marginTop: 26, opacity: valid ? 1 : 0.4 }}
             >
-              Submit
+              {submitting ? "Submitting…" : "Submit"}
             </button>
           </>
         )}
