@@ -2,8 +2,8 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-20 (session 13)
-**Current phase:** Phase 5 — Cafes Near Me (Google Places) + Jazz audio
+**Last updated:** 2026-04-20 (session 14)
+**Current phase:** Phase 5 — Jazz audio (5c) · then Phase 6 PWA
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
@@ -122,20 +122,36 @@ When you open a new session:
 - [x] `BeanLog.tsx` — replaced header icon buttons + inline add form with two side-by-side cards: "Scan packaging" and "Enter manually"; both navigate to `/scan` with correct state
 - [x] `Setup.tsx` — bean picker in brew flow updated to show "Scan packaging" + "Enter manually" side by side (was single scan button only)
 - [x] Edge Function deployed: `supabase functions deploy scan-bean --no-verify-jwt`
-- [ ] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places API → replace hardcoded `cafes.ts` data; add `GOOGLE_PLACES_API_KEY` secret
+- [x] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places Nearby Search (New API) → deployed; `Cafes.tsx` calls Edge Function on geolocation grant, falls back to `CAFES` demo data on denial or error; 24h `cafes_cache` grid-bucketed; `GOOGLE_PLACES_API_KEY` secret must be set in Supabase dashboard
 - [ ] 5c — Jazz audio: wire toggle to actual playback (royalty-free stream or embedded player)
 
 **Exit criteria for Phase 5:** photograph a real coffee bag → fields auto-populate; cafes show real nearby results; jazz plays.
 
 **5a confirmed working:** Claude Vision reads real coffee bag labels and populates bean form fields — 2026-04-20.
 
-## Next up: Phase 5b — Cafes Near Me
+## Next up: Phase 5c — Jazz audio
 
-1. Create Google Cloud project + enable Places API (New) → get API key
-2. Create `supabase/functions/cafes-nearby/index.ts` — accepts `lat`/`lng`, queries Places API for "specialty coffee" nearby, caches to `cafes_cache` for 24h, returns array of cafe objects
-3. Add `GOOGLE_PLACES_API_KEY` to Supabase Edge Function secrets
-4. Update `Cafes.tsx` — call Edge Function on geolocation success; keep existing demo-mode fallback if permission denied
-5. Deploy: `supabase functions deploy cafes-nearby --no-verify-jwt`
+Wire the vinyl toggle in `SettingsModal` to actual audio playback. Options:
+1. Embed a royalty-free lo-fi / jazz stream (e.g. a public internet radio URL or a self-hosted mp3)
+2. Use the HTML5 `<audio>` element with `loop`; manage play/pause from the `autoPlayMusic` settings toggle
+3. Show the vinyl widget animating while playing; pause on low-battery or tab-hidden events
+
+After 5c: move to Phase 6 — PWA manifest + service worker + notifications.
+
+---
+
+## API key still needed for 5b to go live
+
+The `cafes-nearby` Edge Function is deployed but will return a 503 until the secret is set:
+
+```
+supabase secrets set GOOGLE_PLACES_API_KEY=<your_key>
+```
+
+To get the key:
+1. Go to https://console.cloud.google.com → create / select a project
+2. APIs & Services → Enable → **Places API (New)**
+3. Credentials → Create API key → restrict to "Places API (New)"
 
 ---
 
@@ -163,6 +179,7 @@ bloombrewvs/
     functions/
       tweak-coach/index.ts       ✅ deployed — Claude SSE streaming, rate limit, thread persistence
       scan-bean/index.ts         ✅ deployed — Claude Vision, returns structured bean JSON
+      cafes-nearby/index.ts      ✅ deployed — Google Places Nearby Search (New), 24h cache; needs GOOGLE_PLACES_API_KEY secret
   web/
     vercel.json                  SPA rewrite rule (must live here, not repo root)
     package.json                 Vite 8, React 19, TS 6
@@ -189,7 +206,7 @@ bloombrewvs/
         Journal.tsx              list + stats + Tweak button
         Tweak.tsx                rules diagnosis + Claude Q&A (Edge Function live)
         Discover.tsx             curated Indian beans
-        Cafes.tsx                ⚠ hardcoded Bangalore data (Phase 5b — replace with Places API)
+        Cafes.tsx                ✅ calls cafes-nearby Edge Function on geolocation grant; demo fallback
         Glossary.tsx
         Community.tsx            DB-backed posts + likes
         SubmitRecipe.tsx         inserts to recipe_submissions
@@ -203,6 +220,26 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 14 (2026-04-20) — Phase 5b: Cafes Near Me
+
+- Created `supabase/functions/cafes-nearby/index.ts` — Deno Edge Function:
+  - Auth check via Supabase user client
+  - Accepts `{ lat, lng }` POST body
+  - Checks `cafes_cache` for a fresh entry (< 24h) bucketed to a ~1km grid cell (`GRID_PRECISION=2`)
+  - On cache miss, calls Google Places Nearby Search (New API) for `cafe` + `coffee_shop` types within 5km, ranked by distance
+  - Extracts `name`, `area` (second-last address component), `dist` (haversine), `rating`, `tags` (inferred from editorial summary + type), `place_id`, `lat`, `lng`
+  - Upserts result array to `cafes_cache` keyed on `grid_{lat}_{lng}`
+  - Returns 503 with descriptive error if `GOOGLE_PLACES_API_KEY` secret is missing
+- Updated `Cafes.tsx`:
+  - On geolocation grant: calls Edge Function with live lat/lng; shows real results sorted by distance; maps link uses exact coordinates + `place_id`
+  - On API error or empty results: falls back to `CAFES` static demo list with inline banner
+  - On geolocation denial: falls back to demo list (same as before)
+  - `isRealResults` flag drives subtitle copy ("Sorted by distance" vs "Demo locations")
+- Deployed: `supabase functions deploy cafes-nearby --no-verify-jwt`
+- `tsc --noEmit` clean after changes
+
+**Blocking for live use:** `GOOGLE_PLACES_API_KEY` secret must be set in Supabase dashboard (see "Next up" above).
 
 ### Session 13 (2026-04-20) — UX flow reorder + dynamic dashboard stats
 

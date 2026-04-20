@@ -6,29 +6,92 @@ import { useViewport } from "../components/ui";
 import { Header } from "../components/Header";
 import { Pill } from "../components/Pill";
 import { CAFES } from "../data";
+import { supabase } from "../lib/supabase";
+
+interface CafeResult {
+  name: string;
+  area: string;
+  dist: string;
+  rating: number;
+  tags: string[];
+  place_id?: string;
+  lat?: number;
+  lng?: number;
+}
 
 export function Cafes() {
   const navigate = useNavigate();
   const { isDesktop } = useViewport();
   const hasGeo = Boolean(navigator.geolocation);
+
   const [locating, setLocating] = useState(hasGeo);
-  const [hasRealLocation, setHasRealLocation] = useState(false);
+  const [cafes, setCafes] = useState<CafeResult[]>([]);
+  const [isRealResults, setIsRealResults] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(
     hasGeo ? null : "Geolocation not supported",
   );
 
   useEffect(() => {
-    if (!hasGeo) return;
+    if (!hasGeo) {
+      setCafes(CAFES);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
-      () => { setHasRealLocation(true); setLocating(false); },
-      () => { setLocationError("Showing demo cafes — enable location for nearby results"); setLocating(false); },
-      { timeout: 6000 },
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          if (!token) throw new Error("No session");
+
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cafes-nearby`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ lat, lng }),
+            },
+          );
+
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const results: CafeResult[] = await res.json();
+
+          if (results.length > 0) {
+            setCafes(results);
+            setIsRealResults(true);
+          } else {
+            setCafes(CAFES);
+            setLocationError("No specialty cafes found nearby · showing curated list");
+          }
+        } catch {
+          setCafes(CAFES);
+          setLocationError("Could not load nearby cafes · showing curated list");
+        }
+        setLocating(false);
+      },
+      () => {
+        setCafes(CAFES);
+        setLocationError("Showing demo cafes — enable location for nearby results");
+        setLocating(false);
+      },
+      { timeout: 8000 },
     );
   }, [hasGeo]);
 
-  const openInMaps = (name: string, area: string) => {
-    const q = encodeURIComponent(`${name} ${area} Bangalore`);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+  const openInMaps = (cafe: CafeResult) => {
+    if (cafe.lat != null && cafe.lng != null) {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${cafe.lat},${cafe.lng}&query_place_id=${cafe.place_id ?? ""}`,
+        "_blank",
+      );
+    } else {
+      const q = encodeURIComponent(`${cafe.name} ${cafe.area}`);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+    }
   };
 
   return (
@@ -39,7 +102,11 @@ export function Cafes() {
           <div>
             <div style={{ fontSize: 28, fontWeight: 200, marginBottom: 6, letterSpacing: "-0.02em" }}>Specialty coffee</div>
             <div style={{ fontSize: 12, color: T.creamDim }}>
-              {locating ? "Finding cafes near you..." : hasRealLocation ? "Sorted by distance · tap to navigate" : "Demo locations · tap to open in Maps"}
+              {locating
+                ? "Finding cafes near you..."
+                : isRealResults
+                ? "Sorted by distance · tap to navigate"
+                : "Demo locations · tap to open in Maps"}
             </div>
           </div>
           <div style={{ color: T.accent }}><MapPin size={20} /></div>
@@ -58,10 +125,10 @@ export function Cafes() {
           </div>
         ) : (
           <div style={{ display: "grid", gap: 12, gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr" }}>
-            {CAFES.map((c, i) => (
+            {cafes.map((c, i) => (
               <button
-                key={i}
-                onClick={() => openInMaps(c.name, c.area)}
+                key={c.place_id ?? i}
+                onClick={() => openInMaps(c)}
                 className="fade-up"
                 style={{
                   padding: "20px 22px", background: T.bg2, border: `1px solid ${T.line}`,
@@ -80,9 +147,11 @@ export function Cafes() {
                       <span>{c.area}</span><span>·</span><span>{c.dist}</span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.accent, fontSize: 12 }}>
-                    <Star size={11} color={T.accent} /> {c.rating}
-                  </div>
+                  {c.rating > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.accent, fontSize: 12 }}>
+                      <Star size={11} color={T.accent} /> {c.rating}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                   {c.tags.map((tag) => <Pill key={tag} dim>{tag}</Pill>)}

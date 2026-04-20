@@ -135,11 +135,10 @@ Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to
    - `JournalEntry` type gains `createdAt?`; `dbJournalToLocal` forwards `created_at`; no DB schema change
    - Today's bar and label highlighted; empty days show a faint stub
 
-2. **Google Places for "Cafes Near Me"** (next)
-   - Edge Function `cafes-nearby`: accepts `lat`/`lng`, calls Places API (New), caches to `cafes_cache` for 24h
-   - `Cafes.tsx` swaps hardcoded Bangalore list for Edge Function results; demo-mode fallback if permission denied
-   - Add `GOOGLE_PLACES_API_KEY` to Supabase Edge Function secrets
-   - Requires Google Cloud project + Places API (New) enabled
+2. ✅ **Google Places for "Cafes Near Me"**
+   - `supabase/functions/cafes-nearby/index.ts` deployed — Nearby Search (New API), ranked by distance, 24h grid-bucketed cache in `cafes_cache`
+   - `Cafes.tsx` calls Edge Function on geolocation grant; falls back to demo list on denial/error
+   - **Still needed:** `supabase secrets set GOOGLE_PLACES_API_KEY=<key>` in Supabase dashboard (function returns 503 until set)
 
 3. **Jazz audio** (low priority)
    - Wire the toggle to actual audio (royalty-free stream or embedded player)
