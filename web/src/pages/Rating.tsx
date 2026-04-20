@@ -7,16 +7,19 @@ import { Pill } from "../components/Pill";
 import { ScoreSlider } from "../components";
 import { useAppContext } from "../AppContext";
 import { SCORE_AXES } from "../data";
+import { useAuth } from "../AuthContext";
 
 export function Rating() {
   const navigate = useNavigate();
-  const { pendingBrew, setPendingBrew, saveJournalEntry } = useAppContext();
+  const { pendingBrew, setPendingBrew, saveJournalEntry, dbError, clearDbError } = useAppContext();
+  const { user } = useAuth();
   const { isDesktop } = useViewport();
 
   const [scores, setScores] = useState({
     sweetness: 5, acidity: 5, body: 5, bitterness: 3, aftertaste: 5, overall: 7,
   });
   const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!pendingBrew) navigate("/journal", { replace: true });
@@ -26,7 +29,9 @@ export function Rating() {
 
   const setScore = (k: string, v: number) => setScores((prev) => ({ ...prev, [k]: v }));
 
-  const save = () => {
+  const save = async () => {
+    clearDbError();
+    setSaving(true);
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const entry = {
       id: pendingBrew.existingId ?? `temp-${Date.now()}`,
@@ -52,7 +57,10 @@ export function Rating() {
       quickLogged: false,
     };
 
-    void saveJournalEntry(entry);
+    await saveJournalEntry(entry);
+    setSaving(false);
+    // dbError will be set by AppContext if the DB insert failed — show it, don't navigate yet
+    if (dbError) return;
     setPendingBrew(null);
     navigate("/journal");
   };
@@ -113,7 +121,15 @@ export function Rating() {
           />
         </div>
 
-        <button onClick={save} style={{ ...primaryBtn, width: "100%" }}>Save to journal</button>
+        {dbError && (
+          <div style={{ background: "#3a1a1a", border: "1px solid #7a3333", borderRadius: 10, padding: "12px 16px", marginBottom: 14, fontSize: 12, color: "#f4a0a0", lineHeight: 1.5 }}>
+            <strong>Save failed:</strong> {dbError}<br />
+            <span style={{ fontSize: 10, opacity: 0.7 }}>user: {user?.id ?? "null"}</span>
+          </div>
+        )}
+        <button onClick={() => void save()} disabled={saving} style={{ ...primaryBtn, width: "100%", opacity: saving ? 0.6 : 1 }}>
+          {saving ? "Saving…" : "Save to journal"}
+        </button>
       </div>
     </div>
   );

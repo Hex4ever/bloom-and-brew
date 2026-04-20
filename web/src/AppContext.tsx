@@ -151,6 +151,8 @@ interface AppContextValue {
   pendingTweak: JournalEntry | null;
   setPendingTweak: (e: JournalEntry | null) => void;
   dbLoading: boolean;
+  dbError: string | null;
+  clearDbError: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -177,6 +179,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pendingBrew, setPendingBrew] = useState<PendingBrew | null>(null);
   const [pendingTweak, setPendingTweak] = useState<JournalEntry | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const clearDbError = useCallback(() => setDbError(null), []);
 
   // Load all user data from DB on login
   useEffect(() => {
@@ -314,7 +318,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error) { console.error("journal update failed:", error.message); return entry; }
+      if (error) { console.error("journal update failed:", error.message); setDbError(error.message); return entry; }
       if (!data) return entry;
       const updated = dbJournalToLocal(data as unknown as DbJournal);
       setBrewLog(brewLog.map(e => e.id === entry.id ? updated : e));
@@ -344,7 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error) { console.error("journal insert failed:", error.message); return entry; }
+      if (error) { console.error("journal insert failed:", error.message); setDbError(error.message); return entry; }
       if (!data) return entry;
       const saved = dbJournalToLocal(data as unknown as DbJournal);
       // Replace temp entry with the DB-assigned UUID and sync localStorage
@@ -404,6 +408,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       pendingBrew, setPendingBrew,
       pendingTweak, setPendingTweak,
       dbLoading,
+      dbError, clearDbError,
     }}>
       {children}
     </AppContext.Provider>
