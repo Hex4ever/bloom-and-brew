@@ -27,6 +27,7 @@ export interface JournalEntry {
   bean: string;
   grinder: string;
   date: string;
+  createdAt?: string;
   dose?: number;
   water?: number;
   temp?: number;

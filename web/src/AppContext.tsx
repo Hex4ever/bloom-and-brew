@@ -63,6 +63,7 @@ function dbJournalToLocal(row: DbJournal): JournalEntry {
     bean:        row.bean_name ?? "Unknown bean",
     grinder:     row.grinder_name ?? "Unknown grinder",
     date,
+    createdAt:   row.created_at,
     dose:        row.dose_g_used ?? undefined,
     water:       row.water_g_used ?? undefined,
     temp:        row.temp_c_used ?? undefined,

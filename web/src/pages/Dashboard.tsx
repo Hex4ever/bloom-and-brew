@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Compass, MapPin, Book, Plus, Coffee,
@@ -37,20 +38,65 @@ function Stat({ n, l }: { n: string; l: string }) {
 }
 
 function WeekStats() {
+  const { brewLog } = useAppContext();
+
+  const { weekEntries, dailyCounts, todayIndex } = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); // Monday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const entries = brewLog.filter(e => {
+      if (!e.createdAt) return false;
+      const t = new Date(e.createdAt).getTime();
+      return t >= weekStart.getTime() && t < weekEnd.getTime();
+    });
+
+    const counts = [0, 0, 0, 0, 0, 0, 0]; // Mon–Sun
+    entries.forEach(e => {
+      const d = new Date(e.createdAt!);
+      counts[(d.getDay() + 6) % 7]++;
+    });
+
+    return {
+      weekEntries: entries,
+      dailyCounts: counts,
+      todayIndex: (now.getDay() + 6) % 7,
+    };
+  }, [brewLog]);
+
+  const brewCount = weekEntries.length;
+  const avgScore = brewCount > 0
+    ? (weekEntries.reduce((s, e) => s + e.scores.overall, 0) / brewCount).toFixed(1)
+    : "—";
+  const methodCount = new Set(weekEntries.map(e => e.method)).size;
+  const maxCount = Math.max(...dailyCounts, 1);
+
   return (
     <div style={{ border: `1px solid ${T.line}`, borderRadius: 18, padding: 22, background: T.bg2 }}>
       <div style={{ fontSize: 10, letterSpacing: "0.25em", color: T.creamDim, marginBottom: 18 }}>THIS WEEK</div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
-        <Stat n="12" l="brews" /><Stat n="4.7" l="avg score" /><Stat n="3" l="methods" />
+        <Stat n={String(brewCount)} l="brews" />
+        <Stat n={avgScore} l="avg score" />
+        <Stat n={String(methodCount)} l="methods" />
       </div>
       <div style={{ display: "flex", gap: 4, height: 50, alignItems: "flex-end" }}>
-        {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
-          <div key={i} style={{ flex: 1, background: i === 6 ? T.accent : T.brownDeep, height: `${h}%`, borderRadius: 2 }} />
+        {dailyCounts.map((c, i) => (
+          <div key={i} style={{
+            flex: 1,
+            background: i === todayIndex ? T.accent : T.brownDeep,
+            height: `${Math.max((c / maxCount) * 100, 8)}%`,
+            borderRadius: 2,
+            opacity: c === 0 ? 0.3 : 1,
+          }} />
         ))}
       </div>
       <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
         {["M","T","W","T","F","S","S"].map((d, i) => (
-          <div key={i} style={{ flex: 1, fontSize: 9, color: T.creamDim, textAlign: "center" }}>{d}</div>
+          <div key={i} style={{ flex: 1, fontSize: 9, color: i === todayIndex ? T.accent : T.creamDim, textAlign: "center" }}>{d}</div>
         ))}
       </div>
     </div>
