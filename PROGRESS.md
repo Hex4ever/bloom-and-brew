@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-20 (session 10)
-**Current phase:** Phase 4 in progress — AI integration (tweak coach)
+**Last updated:** 2026-04-20 (session 13)
+**Current phase:** Phase 5 — Cafes Near Me (Google Places) + Jazz audio
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** `0db8502` — chore: add vercel.json
+**Head of `main`:** feat(dashboard): make This Week card reflect real journal data (`782c60a`)
 
 ---
 
@@ -20,7 +20,7 @@ When you open a new session:
 2. `nvm use` (picks up `.nvmrc` → Node 22.17.0; system default stays on Node 18)
 3. Read this file, then `BUILD_PLAN.md` for the full plan.
 4. Jump to the **Next up** section below.
-5. Model: start on **Sonnet 4.6** for coding (the bulk of task #7 is mechanical porting of pure functions). Escalate to **Opus 4.6** only if you hit a hard algorithmic question or a tricky refactor. Haiku is not in the loop for code.
+5. Model: **Sonnet 4.6** for coding. Escalate to **Opus 4.6** only for hard architectural decisions. Haiku is not in the loop for code.
 
 ---
 
@@ -82,17 +82,22 @@ When you open a new session:
 - [x] `supabase/migrations/002_phase3.sql` — `name` on `beans`, `grinder_type` on `grinders`, 8 denormalized display columns on `journal_entries`, `poster_name` on `community_posts`
 - [x] `web/src/types/database.ts` — updated to match migration
 - [x] `AppContext.tsx` — on login fetches journal/beans/grinders from DB; exposes `saveJournalEntry`, `addBean`, `deleteBean`, `availableGrinders`, `dbLoading`; write-through to DB for all mutations; optimistic UI with rollback on insert failure
-- [x] `Rating.tsx` — calls `saveJournalEntry` (DB insert) instead of local `setBrewLog`
+- [x] `Rating.tsx` — calls `saveJournalEntry` (DB insert) instead of local `setBrewLog`; fixed stale `dbError` check (now checks return value — `null` = DB error)
+- [x] `Brew.tsx` — quick save ("Save to profile") now routes through `saveJournalEntry` instead of directly mutating `setBrewLog`; previously never wrote to Supabase
 - [x] `BeanLog.tsx` — delete (X button) + manual add form; uses `addBean` / `deleteBean` from context
 - [x] `ScanBean.tsx` — save calls `addBean` (DB insert); no longer mutates beanLog directly
 - [x] `SubmitRecipe.tsx` — inserts to `recipe_submissions` with `status='pending'` on submit
 - [x] `Community.tsx` — fetches posts from DB; creates posts via DB; optimistic like/unlike with `post_likes` toggle + `likes_count` update
 - [x] `RecipeList.tsx` — shows approved community recipes from `recipe_submissions` below curated list
 - [x] `Setup.tsx` — uses `availableGrinders` from context (DB-backed; falls back to static GRINDERS)
+- [x] `web/vercel.json` — SPA rewrite rule moved into `web/` (root `vercel.json` was ignored by Vercel since project root is `web/`); fixes 404 on page refresh
 
-**Exit criteria for Phase 3:** sign in on two devices, log a brew on one, see it appear on the other.
+**Exit criteria for Phase 3:** ✅ sign in on two devices, log a brew on one, see it appear on the other — confirmed working 2026-04-20.
 
-**Before testing:** run `002_phase3.sql` in the Supabase SQL editor.
+**Bugs fixed post-session (2026-04-20):**
+- Journal entries were never reaching Supabase: `Rating.tsx` checked stale React state (`if (dbError)`) after async save; code always navigated away even on DB failure → entries lived only in localStorage and vanished on refresh.
+- Quick save in `Brew.tsx` called `setBrewLog` directly, bypassing `saveJournalEntry` entirely.
+- `web/vercel.json` was missing — root-level file ignored when Vercel root dir = `web/`; all route refreshes returned 404.
 
 ---
 
@@ -100,94 +105,134 @@ When you open a new session:
 
 - [x] `supabase/functions/tweak-coach/index.ts` — Deno Edge Function: auth check, rate limit (50/day), find-or-create thread, load history, stream Claude Sonnet 4.6 via SSE, persist turn to `tweak_messages`; system prompt marked `cache_control: ephemeral` for prompt caching
 - [x] `web/src/pages/Tweak.tsx` — Q&A section wired to Edge Function; SSE streaming with live typing cursor; rate-limit banner; graceful fallback to local `answerQuestionLocally` when offline/Edge Function error; rules-based diagnosis + suggestions panel unchanged
-- [ ] Set `ANTHROPIC_API_KEY` secret in Supabase dashboard → Project Settings → Edge Functions → Secrets
-- [ ] Deploy Edge Function: `supabase functions deploy tweak-coach --no-verify-jwt` (JWT verified inside the function)
-- [ ] Smoke test end-to-end: ask a question on a real journal entry, confirm streaming works and message persists in DB
+- [x] Set `ANTHROPIC_API_KEY` secret in Supabase dashboard → Edge Functions → Secrets
+- [x] Deploy Edge Function: `supabase functions deploy tweak-coach --no-verify-jwt`
+- [x] Smoke test end-to-end: confirmed Claude streams real responses on a rated journal entry — 2026-04-20
 
 **Decision:** Flavor finder stays keyword-based — no AI, no Edge Function needed.
 
-**Before testing:** ANTHROPIC_API_KEY must be set as an Edge Function secret in Supabase.
+**Exit criteria for Phase 4:** ✅ Claude streams real responses end-to-end; API key not in client bundle; flavor finder unchanged — confirmed 2026-04-20.
 
 ---
 
-## Next up: Phase 4 — deploy Edge Function + smoke test
+## Phase 5 task checklist
 
-Code is written. Next steps to go live:
-1. Add `ANTHROPIC_API_KEY` in Supabase dashboard → Edge Function secrets
-2. `supabase functions deploy tweak-coach`
-3. Test on the deployed app — open a journal entry → Tweak → ask a question
+- [x] `supabase/functions/scan-bean/index.ts` — Claude Vision Edge Function: auth check, accepts base64 image + mediaType, calls `claude-sonnet-4-6` with vision, returns `{ name, roaster, origin, roast, notes }` JSON; strips markdown fences from response; graceful 422 on parse failure
+- [x] `ScanBean.tsx` — rewritten: reads initial mode from React Router `location.state`; mode=scan shows camera picker, mode=manual goes straight to blank form, scanning shows animated loader; confirm-and-edit form for both paths; error banner on API failure falls back to empty form
+- [x] `BeanLog.tsx` — replaced header icon buttons + inline add form with two side-by-side cards: "Scan packaging" and "Enter manually"; both navigate to `/scan` with correct state
+- [x] `Setup.tsx` — bean picker in brew flow updated to show "Scan packaging" + "Enter manually" side by side (was single scan button only)
+- [x] Edge Function deployed: `supabase functions deploy scan-bean --no-verify-jwt`
+- [ ] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places API → replace hardcoded `cafes.ts` data; add `GOOGLE_PLACES_API_KEY` secret
+- [ ] 5c — Jazz audio: wire toggle to actual playback (royalty-free stream or embedded player)
+
+**Exit criteria for Phase 5:** photograph a real coffee bag → fields auto-populate; cafes show real nearby results; jazz plays.
+
+**5a confirmed working:** Claude Vision reads real coffee bag labels and populates bean form fields — 2026-04-20.
+
+## Next up: Phase 5b — Cafes Near Me
+
+1. Create Google Cloud project + enable Places API (New) → get API key
+2. Create `supabase/functions/cafes-nearby/index.ts` — accepts `lat`/`lng`, queries Places API for "specialty coffee" nearby, caches to `cafes_cache` for 24h, returns array of cafe objects
+3. Add `GOOGLE_PLACES_API_KEY` to Supabase Edge Function secrets
+4. Update `Cafes.tsx` — call Edge Function on geolocation success; keep existing demo-mode fallback if permission denied
+5. Deploy: `supabase functions deploy cafes-nearby --no-verify-jwt`
 
 ---
 
-## What's on disk now (as of 2026-04-16 end of session 3)
+## What's on disk now (as of 2026-04-20 end of session 11)
 
 ```
 bloombrewvs/
-  .git/                          5 commits on main
-  .gitignore                     node_modules, .env, dist, .venv, .vercel, .supabase, etc.
-  .nvmrc                         "22"
-  BUILD_PLAN.md                  9-phase plan (stable)
-  MODELS.md                      Opus/Sonnet/Haiku routing
+  .git/                          main branch, all phases 0–4 committed
+  .gitignore
+  .nvmrc                         "22" → Node 22.17.0
+  BUILD_PLAN.md                  9-phase plan (updated)
+  MODELS.md                      Opus/Sonnet/Haiku routing rules
   PROGRESS.md                    this file
-  README.md                      original prototype README
-  FEATURES.md                    complete feature spec
-  HOSTING.md                     original hosting notes
-  projectcontext.md              user's original instructions
+  README.md                      needs update (still reflects old prototype)
+  FEATURES.md                    needs update (reflects old prototype state)
+  HOSTING.md                     original notes
+  projectcontext.md              original brief
   reference/
-    index.html                   prototype, 181KB, design-locked
+    index.html                   design-locked prototype, 181KB
+  supabase/
+    migrations/
+      001_initial_schema.sql     all tables, RLS, auto-profile trigger
+      002_phase3.sql             denormalized display columns, bean name, grinder type
+    seed.sql                     26 recipes, 6 grinders, 8 Indian beans
+    functions/
+      tweak-coach/index.ts       ✅ deployed — Claude SSE streaming, rate limit, thread persistence
+      scan-bean/index.ts         ✅ deployed — Claude Vision, returns structured bean JSON
   web/
+    vercel.json                  SPA rewrite rule (must live here, not repo root)
     package.json                 Vite 8, React 19, TS 6
-    tsconfig.app.json            verbatimModuleSyntax + erasableSyntaxOnly
-    vite.config.ts, eslint.config.js, index.html, dist/ (gitignored)
-    node_modules/                gitignored
-    public/                      favicon + icons
+    .env                         VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (gitignored)
+    .env.example                 committed template
     src/
-      App.tsx, main.tsx, index.css, App.css, assets/  default Vite template still
-      types/
-        index.ts                 barrel
-        method.ts                METHOD_IDS, Method, MethodId, BrewingMethodCategory, MethodDifficulty
-        recipe.ts                Recipe, RecipeStep, RecipesByMethod
-        grinder.ts               Grinder, GrinderType
-        bean.ts                  Bean, BeanSource, CuratedBean
-        journal.ts               RATING_AXIS_KEYS, RatingAxes, RatingAxisKey, JournalEntry
-        prep.ts                  PrepStep, PrepChecklist, PrepChecklistsByMethod
-        settings.ts              UserSettings, Units, TempUnit
-      data/
-        index.ts                 barrel
-        methods.ts               9 Method[]
-        grinders.ts              6 Grinder[]
-        recipes.ts               26 recipes (RecipesByMethod)
-        glossary.ts              12 terms + GlossaryTerm type
-        indianBeans.ts           8 CuratedBean[] (renamed `source` → `availability`)
-        cafes.ts                 6 Cafe[] + Cafe type
-        content.ts               SCORE_AXES, TIPS, FUN_FACTS + ScoreAxisConfig type
-        preBrew.ts               PRE_BREW (all 9 methods) + DEFAULT_PRE_BREW
-        feed.ts                  3 CommunityPost[] seeds + CommunityPost type
-      pages/.gitkeep             empty (task #10)
-      components/
-        index.ts                 barrel
-        BottomNav.tsx + Sidebar.tsx
-        SettingsModal.tsx        (includes SetField, Toggle, Switch)
-        PrepChecklist.tsx
-        ScoreSlider.tsx + RatingBars.tsx
-        BrewScene.tsx            (6 SVG scene variants)
-        BrewTimer.tsx            (+ PulseDot, fmtTime)
-        components.test.tsx      (38 tests)
-      lib/
-        .gitkeep
-        grinderMath.ts + grinderMath.test.ts
-        recipeScaling.ts + recipeScaling.test.ts
-        flavorMatch.ts + flavorMatch.test.ts
-        tweakEngine.ts + tweakEngine.test.ts
-        storage.ts + storage.test.ts
-      styles/.gitkeep            empty (task #11)
+      App.tsx                    router + AuthProvider + AppProvider + RequireAuth guards
+      main.tsx                   mounts app, calls initStorage()
+      AuthContext.tsx             Supabase session wrapper
+      AppContext.tsx              global state + all DB mutations (journal, beans, grinders, settings)
+      types/                     method, recipe, grinder, bean, journal, prep, settings, database
+      data/                      methods, grinders, recipes, glossary, indianBeans, cafes, content, preBrew, feed
+      lib/                       grinderMath, recipeScaling, flavorMatch, tweakEngine, storage (all with tests)
+      styles/                    theme.ts, tokens.css, base.css, animations.css
+      components/                BottomNav, Sidebar, SettingsModal, PrepChecklist, ScoreSlider,
+                                 RatingBars, BrewScene, BrewTimer, RequireAuth, Header, Pill, ui.tsx
+      pages/
+        Dashboard.tsx            home; This Week card is fully dynamic (brews, avg score, methods, bar chart)
+        MethodPicker.tsx         navigates to /recipes after method select (updated flow)
+        Setup.tsx                beans first (1/2) then grinder (2/2); ends at /methods
+        RecipeList.tsx           curated + approved community recipes
+        Brew.tsx                 timer + scene + quick save (DB-backed)
+        Rating.tsx               detailed 5-axis log (DB-backed, error shown on failure)
+        Journal.tsx              list + stats + Tweak button
+        Tweak.tsx                rules diagnosis + Claude Q&A (Edge Function live)
+        Discover.tsx             curated Indian beans
+        Cafes.tsx                ⚠ hardcoded Bangalore data (Phase 5b — replace with Places API)
+        Glossary.tsx
+        Community.tsx            DB-backed posts + likes
+        SubmitRecipe.tsx         inserts to recipe_submissions
+        BeanLog.tsx              scan + manual entry cards; bean list with delete
+        ScanBean.tsx             ✅ Claude Vision scan + manual entry; mode driven by router state
+        auth/SignIn.tsx + SignUp.tsx + ForgotPassword.tsx
 ```
 
-Working tree is clean. Everything is committed.
+Working tree is clean. Everything committed.
 
 ---
 
 ## Sessions log
+
+### Session 13 (2026-04-20) — UX flow reorder + dynamic dashboard stats
+
+- **New-brew flow reordered**: was Method → Grinder → Beans → Recipes; now **Beans → Grinder → Method → Recipes** (matches how a user naturally starts from what they have, not what they want to make).
+  - `Dashboard.tsx` "New brew" button now navigates to `/setup` instead of `/methods`.
+  - `Setup.tsx` reordered stages: beans (1/2) → grinder (2/2); method guard removed; final CTA "Choose a method" navigates to `/methods`.
+  - `MethodPicker.tsx` navigates to `/recipes` after method select (was `/setup`).
+- **This Week card made dynamic**: brews count, average score, methods used, and daily bar chart all computed from real `brewLog` data for the current Mon–Sun week.
+  - Added `createdAt?: string` to `JournalEntry` type (no DB schema change — `created_at` already existed in Supabase).
+  - `AppContext.tsx` `dbJournalToLocal` now forwards `created_at` → `createdAt`.
+  - `Dashboard.tsx` `WeekStats` uses `useMemo` to filter this week's entries; today's bar and day label highlighted in amber; empty days show a faint stub.
+- Commits: `aef317e` (flow reorder), `782c60a` (dynamic stats).
+
+### Session 12 (2026-04-20) — Phase 5a bean scanner complete
+
+- Created `supabase/functions/scan-bean/index.ts` — Claude Vision Edge Function; deployed.
+- Rewrote `ScanBean.tsx`: mode driven by React Router state (`scan` or `manual`); no more hardcoded mock; scan path calls Edge Function, manual path goes straight to blank form; error banner falls back gracefully to empty form.
+- `BeanLog.tsx` refactored: replaced header icon buttons + inline add form with two prominent side-by-side cards ("Scan packaging" / "Enter manually").
+- `Setup.tsx` bean picker updated: "Scan packaging" + "Enter manually" now appear side by side (was scan-only).
+- Confirmed Claude Vision correctly reads real coffee bag labels in production.
+
+### Session 11 (2026-04-20) — Phase 3 bug fixes + Phase 4 go-live
+- Diagnosed and fixed three silent Phase 3 bugs:
+  - `Rating.tsx` checked stale `dbError` React state after `await saveJournalEntry()` → always navigated away even on DB failure; journal entries never reached Supabase. Fixed: `saveJournalEntry` now returns `null` on error; caller checks return value.
+  - `Brew.tsx` quick-save called `setBrewLog` directly, bypassing `saveJournalEntry` and Supabase entirely. Fixed: now async via `saveJournalEntry`.
+  - `web/vercel.json` missing — the root-level `vercel.json` is ignored by Vercel when project root is `web/`. All route refreshes returned 404. Fixed: added `web/vercel.json` with SPA rewrite rule.
+- Deployed `tweak-coach` Edge Function (`supabase functions deploy tweak-coach --no-verify-jwt`).
+- Confirmed Phase 4 exit criteria: Claude streams real AI responses end-to-end on rated journal entries.
+- `ScanBean.tsx` confirmed as hardcoded mock — identified as Phase 5 priority.
+- Updated PROGRESS.md and BUILD_PLAN.md to reflect current state.
 
 ### Session 1 (2026-04-16) — foundation decisions
 - Locked frontend design (`reference/index.html`) pending working backend.
@@ -279,19 +324,20 @@ npx tsc --noEmit -p tsconfig.app.json   # typecheck without emit
 | Vite | 8.0.8 | |
 | React | 19.2.4 | |
 | TypeScript | 6.0.2 | `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals` all on |
-| ESLint | 9.39.4 | Vite default; tighten in task #12 |
-| Vitest | — | install in task #7 |
+| ESLint | 9.39.4 | |
+| Vitest | 3.x | `.test.tsx` in jsdom, `.test.ts` in node |
+| Supabase JS | 2.x | |
+| Claude model | claude-sonnet-4-6 | used in tweak-coach Edge Function |
 
 ---
 
 ## Open questions to revisit
 
-1. **GitHub remote** — when to create it; keep monorepo in one repo or split when mobile is added.
-2. **zsh auto-switch hook** — ever want it? (5 lines in `~/.zshrc`)
-3. **Custom domain** — eventual production URL (e.g. `bloomandbrew.app`); buy early so DNS propagation is not a launch-week problem.
-4. **Admin UI for recipe submissions** — MVP assumes manual SQL promotion; decide by end of Phase 3 whether to build a simple admin view before launch.
-5. **Monetization / Pro tier** — not required for launch; if on roadmap, Stripe integration slots into Phase 6/7.
-6. **Step-description rewrites during scaling** — see task #7d above; decide now so it does not leak into pages (#10).
+1. **Custom domain** — buy `bloomandbrew.app` early; DNS propagation is a launch-week problem if left late.
+2. **Admin UI for recipe submissions** — currently manual SQL promotion. Needed before launch if volume picks up.
+3. **Monetization / Pro tier** — unlimited tweaks, premium beans discovery, etc. If on roadmap, Stripe slots into Phase 6/7.
+4. **README + FEATURES.md** — both still describe the old prototype. Update before any public launch or sharing.
+5. **Mobile app** — Phase 7 decision: Capacitor wrap (fast) vs React Native rewrite (native feel). Revisit after Phase 6 PWA work.
 
 ---
 

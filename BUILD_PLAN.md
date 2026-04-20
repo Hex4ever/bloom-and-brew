@@ -100,42 +100,52 @@ Exit criteria: you can sign in on two devices, log a brew on one, and see it app
 
 ---
 
-## Phase 4 — AI integration (week 6)
+## Phase 4 — AI integration (week 6) ✅ COMPLETE
 
 Goal: the tweak coach uses the Claude API to give personalised brew adjustments. The flavor finder stays keyword-based (no AI).
 
-1. **Supabase Edge Function: `tweak-coach`**
-   - Input: `journal_entry_id`, `user_message` (optional)
-   - Reads the entry + recipe + bean + grinder from DB
-   - Calls Claude via the Anthropic SDK (`claude-sonnet-4-6` for speed; escalate to Opus if the entry is ambiguous)
-   - Streams the response back to the client via SSE
-   - Persists the turn into `tweak_messages`
-   - Enables prompt caching on the system prompt (coffee-science knowledge base)
-2. **Flavor finder — no AI** — keeps the existing client-side keyword matcher against `flavor_profile` fields in recipes; no Edge Function needed
-3. **API key management** — `ANTHROPIC_API_KEY` stored in Supabase Edge Function secrets; never shipped to the client
-4. **Rate limiting** — per-user request budget enforced in the Edge Function (e.g. 50 tweaks/day on free tier) to cap cost
-5. **Graceful degradation** — if the Edge Function is down, UI shows a friendly error; flavor finder is unaffected (client-side only)
+1. ✅ **Supabase Edge Function: `tweak-coach`** — deployed at `rizncfkqyajsivjsrpoi.supabase.co/functions/v1/tweak-coach`
+   - Auth check + rate limit (50/day per user)
+   - Finds or creates a `tweak_threads` row for the journal entry
+   - Streams Claude `claude-sonnet-4-6` response via SSE
+   - Persists each turn to `tweak_messages`
+   - System prompt uses `cache_control: ephemeral` for prompt caching
+2. ✅ **`web/src/pages/Tweak.tsx`** — SSE streaming with live cursor, rate-limit banner, local rules-based fallback
+3. ✅ **`ANTHROPIC_API_KEY`** set in Supabase Edge Function secrets
+4. ✅ **Flavor finder stays keyword-based** — no Edge Function, no AI cost
 
-Exit criteria: tweak coach returns real AI responses end-to-end; API key is not leaked in the client bundle; flavor finder works unchanged.
+Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to-end; API key not in client bundle.
 
 ---
 
 ## Phase 5 — External integrations (week 7)
 
-1. **Google Places for "Cafes Near Me"**
-   - Edge Function: `cafes-nearby` accepts `lat`, `lng`; calls Places API; caches to `cafes_cache` for 24h
-   - Client keeps the existing geolocation flow; swaps the hardcoded Bangalore list for real results
-   - Demo-mode fallback if permission denied (existing behavior)
-2. **OCR for bean scanning**
-   - Client-side first pass: Tesseract.js (free, runs in browser)
-   - Fallback to Edge Function `scan-bean` that calls Google Cloud Vision or Claude with image input if Tesseract confidence is low
-   - Result auto-fills roaster / origin / roast / tasting notes; user confirms before save
-3. **Jazz audio**
-   - Integrate a royalty-free stream (e.g. Jamendo, or licensed Epidemic Sound track)
-   - Or embed a SoundCloud widget pointed at a curated jazz playlist
-   - Keep the existing visual vinyl widget; just make the toggle actually play audio
+1. ✅ **Bean scanner — Claude Vision**
+   - `supabase/functions/scan-bean/index.ts` deployed — accepts base64 image, calls `claude-sonnet-4-6` vision, returns `{ name, roaster, origin, roast, notes }`
+   - `ScanBean.tsx` rewritten — mode driven by React Router state; scan path calls Edge Function, manual path opens blank form; both land on confirm-and-edit form
+   - `BeanLog.tsx` + `Setup.tsx` both show "Scan packaging" + "Enter manually" side by side
+   - Skipped Tesseract.js — Claude Vision handles stylised coffee packaging better with zero added complexity
 
-Exit criteria: cafes are real, bean scanner extracts text from a real packet, jazz plays sound.
+1b. ✅ **New-brew flow reordered** (UX improvement, 2026-04-20)
+   - Flow is now: **Beans → Grinder → Method → Recipes → Brew** (was Method → Grinder+Beans → Recipes)
+   - `Dashboard.tsx` "New brew" → `/setup`; `Setup.tsx` beans first then grinder; `MethodPicker.tsx` → `/recipes`
+
+1c. ✅ **Dashboard "This Week" card — real data** (2026-04-20)
+   - Brews count, average score, methods used, and daily bar chart computed from live `brewLog`
+   - `JournalEntry` type gains `createdAt?`; `dbJournalToLocal` forwards `created_at`; no DB schema change
+   - Today's bar and label highlighted; empty days show a faint stub
+
+2. **Google Places for "Cafes Near Me"** (next)
+   - Edge Function `cafes-nearby`: accepts `lat`/`lng`, calls Places API (New), caches to `cafes_cache` for 24h
+   - `Cafes.tsx` swaps hardcoded Bangalore list for Edge Function results; demo-mode fallback if permission denied
+   - Add `GOOGLE_PLACES_API_KEY` to Supabase Edge Function secrets
+   - Requires Google Cloud project + Places API (New) enabled
+
+3. **Jazz audio** (low priority)
+   - Wire the toggle to actual audio (royalty-free stream or embedded player)
+   - Keep the existing vinyl visual widget; just make it actually play
+
+Exit criteria: ✅ bean scanner working. Remaining: cafes show real nearby results; jazz plays.
 
 ---
 
