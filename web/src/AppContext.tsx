@@ -255,10 +255,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     set("bbrew_bean_log", log);
   };
 
-  const setBrewLog = (log: JournalEntry[]) => {
+  const setBrewLog = useCallback((log: JournalEntry[]) => {
     setBrewLogState(log);
     set("bbrew_journal", log);
-  };
+  }, []);
 
   const setSettings = (s: UserSettings) => {
     setSettingsState(s);
@@ -278,12 +278,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── DB mutations ──────────────────────────────────────────────────────────
 
   const saveJournalEntry = useCallback(async (entry: JournalEntry): Promise<JournalEntry> => {
-    // Optimistic update
     const isUpdate = !!entry.id && brewLog.some(e => e.id === entry.id);
+
+    // Optimistic update — also write to localStorage so refresh survives a DB failure
     if (isUpdate) {
-      setBrewLogState(prev => prev.map(e => e.id === entry.id ? entry : e));
+      setBrewLog(brewLog.map(e => e.id === entry.id ? entry : e));
     } else {
-      setBrewLogState(prev => [entry, ...prev]);
+      setBrewLog([entry, ...brewLog]);
     }
 
     if (!user) return entry;
@@ -313,9 +314,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error || !data) return entry;
+      if (error) { console.error("journal update failed:", error.message); return entry; }
+      if (!data) return entry;
       const updated = dbJournalToLocal(data as unknown as DbJournal);
-      setBrewLogState(prev => prev.map(e => e.id === entry.id ? updated : e));
+      setBrewLog(brewLog.map(e => e.id === entry.id ? updated : e));
       return updated;
     } else {
       const { data, error } = await supabase
@@ -342,12 +344,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select()
         .single();
 
-      if (error || !data) return entry;
+      if (error) { console.error("journal insert failed:", error.message); return entry; }
+      if (!data) return entry;
       const saved = dbJournalToLocal(data as unknown as DbJournal);
-      setBrewLogState(prev => [saved, ...prev.filter(e => e.id !== entry.id)]);
+      // Replace temp entry with the DB-assigned UUID and sync localStorage
+      setBrewLog([saved, ...brewLog.filter(e => e.id !== entry.id)]);
       return saved;
     }
-  }, [user, brewLog]);
+  }, [user, brewLog, setBrewLog]);
 
   const addBean = useCallback(async (beanData: Omit<Bean, "id" | "date">): Promise<Bean> => {
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
