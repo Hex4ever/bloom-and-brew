@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-21 (session 15)
+**Last updated:** 2026-04-21 (session 15 — continued)
 **Current phase:** Phase 5 — Jazz audio (5c) · then Phase 6 PWA
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** fix(brew): post-brew done → home + background brew timer + BrewPill
+**Head of `main`:** fix(nav): Brew nav item now enters new flow at /setup (`fb798c1`)
 
 ---
 
@@ -151,6 +151,32 @@ Users could lose their entire brew progress if they tapped a nav item mid-brew.
 
 **iOS note:** This `activeBrewSession` context state is the natural feed for a native Live Activity / Dynamic Island notification when the app is wrapped in Capacitor (Phase 7).
 
+### Fix 3 — Cafes: speciality coffee text search + review count filter
+
+The `cafes-nearby` Edge Function was using `searchNearby` with `includedTypes: ["cafe", "coffee_shop"]` — Google's taxonomy makes no distinction between a Starbucks and a third-wave roastery. Also, single-review 5-star places were showing in results.
+
+- Switched to `places:searchText` with `textQuery: "speciality coffee"` — Google's own search ranking now handles the semantic filtering.
+- Added `userRatingCount` to the field mask; results with fewer than 50 reviews are dropped before returning (eliminates 1-review 5-star noise without hard-gating on rating score).
+- `reviewCount` surfaced in the `PlaceResult` payload and displayed in the Cafes UI below the star rating (formatted as "1.2k reviews" above 1000).
+- Cache key prefix changed from `grid_` to `specialty_` to invalidate stale `searchNearby` cache entries on first request.
+- Subtitle updated to "Speciality coffee near you · sorted by distance".
+- Redeployed: `supabase functions deploy cafes-nearby --no-verify-jwt`
+
+### Fix 4 — Smart grinder selection: saved default + change picker + manual add
+
+The grinder stage in `Setup.tsx` previously showed the full curated list on every brew, forcing users to pick every time.
+
+New behaviour:
+- **Default view:** user's current grinder shown prominently (cream card, checkmark). One tap "Choose a method" to continue unchanged — no picking needed.
+- **"Use a different grinder" button:** full-width bordered card with `ArrowLeftRight` icon + `ChevronDown` — clearly clickable, not a text label. Expands to the full picker list inline.
+- **Manual add form:** "Add your grinder" dashed card at the bottom of the picker. Fields: name (free text), Hand/Electric toggle, and an optional **Microns per click** field. If filled, click counts are accurate for that grinder; if left blank, a type-based default is used (Hand ≈ 30 µm/click = Comandante baseline, Electric ≈ 40 µm/click = Encore baseline). Live confirmation line shows "Each click = X µm · click counts will be accurate" once a valid value is entered.
+- Saves to the `grinders` table in Supabase (`user_id`, `name`, `clicks_per_1000um`, `grinder_type`). Becomes the active grinder immediately and persists across sessions.
+- `addGrinder()` added to `AppContext`: optimistic insert to `availableGrinders`, DB insert, replaces temp id with DB uuid on success. Accepts optional `micronsPerClick` param.
+
+### Fix 5 — Brew nav item enters new flow
+
+Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow). Changed so the `go()` function in `Layout` intercepts `screen === "methods"` and navigates to `/setup` instead (beans → grinder → method → recipes → brew). Added "methods" to `BREW_SCREENS` in both `BottomNav` and `Sidebar` so the Brew item stays highlighted throughout the entire flow including the method picker step.
+
 ---
 
 ## Next up: Phase 5c — Jazz audio
@@ -230,9 +256,9 @@ Working tree is clean. Everything committed.
 
 ## Sessions log
 
-### Session 15 (2026-04-21) — UX fixes: post-brew navigation + background brew timer + BrewPill
+### Session 15 (2026-04-21) — UX polish + cafes upgrade + smart grinder selection + nav fix
 
-See "Session 15 UX fixes" block above for full detail.
+See "Session 15 UX fixes" block above for the first two items. Additional work this session:
 
 ### Session 14 (2026-04-20) — Phase 5b: Cafes Near Me
 

@@ -135,10 +135,16 @@ Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to
    - `JournalEntry` type gains `createdAt?`; `dbJournalToLocal` forwards `created_at`; no DB schema change
    - Today's bar and label highlighted; empty days show a faint stub
 
-2. ✅ **Google Places for "Cafes Near Me"**
+2. ✅ **Google Places for "Cafes Near Me"** (initial — 2026-04-20)
    - `supabase/functions/cafes-nearby/index.ts` deployed — Nearby Search (New API), ranked by distance, 24h grid-bucketed cache in `cafes_cache`
    - `Cafes.tsx` calls Edge Function on geolocation grant; falls back to demo list on denial/error
    - `GOOGLE_PLACES_API_KEY` secret set in Supabase dashboard — confirmed working 2026-04-20
+
+2b. ✅ **Cafes — speciality coffee upgrade** (2026-04-21)
+   - Switched from `searchNearby` (type filter) to `searchText` with `textQuery: "speciality coffee"` — Google's ranking engine now does the semantic heavy lifting
+   - `userRatingCount` added to field mask; results with < 50 reviews dropped before returning (eliminates single-review 5-star noise)
+   - `reviewCount` shown in Cafes UI below the star rating; subtitle updated to "Speciality coffee near you"
+   - Cache key prefix changed from `grid_` to `specialty_` to invalidate stale results; redeployed
 
 3. ✅ **UX polish — post-brew navigation + background brew timer** (2026-04-21)
    - `Brew.tsx` "Done" button now routes to `/` (home) instead of navigating back in history to `/recipes`
@@ -146,11 +152,21 @@ Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to
    - New `BrewPill` floating component appears on all pages (except `/brew`) while a brew is active: shows recipe name, time remaining, circular progress ring, and a pause/resume toggle; tapping navigates back to `/brew`
    - Designed as the future feed for a Dynamic Island / Live Activity when wrapped in Capacitor (Phase 7)
 
-4. **Jazz audio** (low priority)
+4. ✅ **Smart grinder selection** (2026-04-21)
+   - Grinder stage shows saved default prominently — no picking required on repeat brews
+   - "Use a different grinder" is a full-width bordered card (not a text label) with swap + chevron icons; expands the full picker inline
+   - "Add your grinder" form: name, Hand/Electric toggle, optional Microns per click field (accurate click counts when provided; type-based default when blank). Saves to `grinders` table in Supabase via new `addGrinder()` in `AppContext`
+   - Persists across sessions as the user's default grinder
+
+5. ✅ **Brew nav item follows new flow** (2026-04-21)
+   - Sidebar and bottom nav "Brew" item now navigates to `/setup` (beans → grinder → method → recipes → brew) instead of the old `/methods` entry point
+   - "Brew" nav item stays highlighted across all steps of the flow including `/methods`
+
+6. **Jazz audio** (low priority)
    - Wire the toggle to actual audio (royalty-free stream or embedded player)
    - Keep the existing vinyl visual widget; just make it actually play
 
-Exit criteria: ✅ bean scanner working. ✅ cafes show real nearby results. ✅ background brew session + BrewPill. Remaining: jazz plays.
+Exit criteria: ✅ bean scanner working. ✅ cafes show speciality results with review count filter. ✅ background brew session + BrewPill. ✅ smart grinder selection. ✅ nav flow consistent. Remaining: jazz plays.
 
 ---
 
