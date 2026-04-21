@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Camera, PenLine, Plus } from "lucide-react";
+import { Check, Camera, PenLine, Plus, ArrowLeftRight, ChevronDown } from "lucide-react";
 import { T } from "../styles/theme";
 import { useViewport, primaryBtn, inputStyle } from "../components/ui";
 import { Header } from "../components/Header";
@@ -128,9 +128,17 @@ export function Setup() {
             {!showPicker ? (
               <button
                 onClick={() => setShowPicker(true)}
-                style={{ background: "none", border: "none", color: T.creamDim, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", padding: "2px 0", marginBottom: 28 }}
+                style={{
+                  width: "100%", marginBottom: 28,
+                  padding: "14px 18px",
+                  background: T.bg2, border: `1px solid ${T.line}`,
+                  borderRadius: 14, color: T.cream,
+                  display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                }}
               >
-                Use a different grinder →
+                <ArrowLeftRight size={15} color={T.accent} />
+                <span style={{ flex: 1, textAlign: "left", fontSize: 13 }}>Use a different grinder</span>
+                <ChevronDown size={14} color={T.creamDim} />
               </button>
             ) : (
               <div style={{ marginBottom: 28 }}>
