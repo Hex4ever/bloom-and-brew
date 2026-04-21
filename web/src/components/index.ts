@@ -20,3 +20,5 @@ export { BrewScene } from "./BrewScene";
 export type { BrewSceneProps } from "./BrewScene";
 
 export { BrewTimer, PulseDot, fmtTime } from "./BrewTimer";
+
+export { BrewPill } from "./BrewPill";

@@ -140,11 +140,17 @@ Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to
    - `Cafes.tsx` calls Edge Function on geolocation grant; falls back to demo list on denial/error
    - `GOOGLE_PLACES_API_KEY` secret set in Supabase dashboard — confirmed working 2026-04-20
 
-3. **Jazz audio** (low priority)
+3. ✅ **UX polish — post-brew navigation + background brew timer** (2026-04-21)
+   - `Brew.tsx` "Done" button now routes to `/` (home) instead of navigating back in history to `/recipes`
+   - Brew timer lifted into `AppContext` (`ActiveBrewSession`) so it keeps ticking when the user navigates away mid-brew
+   - New `BrewPill` floating component appears on all pages (except `/brew`) while a brew is active: shows recipe name, time remaining, circular progress ring, and a pause/resume toggle; tapping navigates back to `/brew`
+   - Designed as the future feed for a Dynamic Island / Live Activity when wrapped in Capacitor (Phase 7)
+
+4. **Jazz audio** (low priority)
    - Wire the toggle to actual audio (royalty-free stream or embedded player)
    - Keep the existing vinyl visual widget; just make it actually play
 
-Exit criteria: ✅ bean scanner working. Remaining: cafes show real nearby results; jazz plays.
+Exit criteria: ✅ bean scanner working. ✅ cafes show real nearby results. ✅ background brew session + BrewPill. Remaining: jazz plays.
 
 ---
 

@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-20 (session 14)
+**Last updated:** 2026-04-21 (session 15)
 **Current phase:** Phase 5 — Jazz audio (5c) · then Phase 6 PWA
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** feat(dashboard): make This Week card reflect real journal data (`782c60a`)
+**Head of `main`:** fix(brew): post-brew done → home + background brew timer + BrewPill
 
 ---
 
@@ -130,6 +130,29 @@ When you open a new session:
 **5a confirmed working:** Claude Vision reads real coffee bag labels and populates bean form fields — 2026-04-20.
 **5b confirmed working:** Real nearby cafes returned from Google Places — 2026-04-20.
 
+## Session 15 UX fixes — done (2026-04-21)
+
+Two UX improvements shipped:
+
+### Fix 1 — Post-brew "Done" routed to home instead of /recipes
+
+`Brew.tsx` `DoneScreen` prop `onReset` was calling `navigate(-1)` which walked back through browser history to `/recipes` (the previous stop in the Setup → Recipes → Brew flow). Changed to `navigate("/")` so both "Done" (after quick-save) and "Skip" always land on the home dashboard.
+
+### Fix 2 — Background brew timer + BrewPill status pill
+
+Users could lose their entire brew progress if they tapped a nav item mid-brew.
+
+**Architecture:** The brew timer was moved from local `Brew.tsx` state into `AppContext`, where it keeps ticking regardless of which page is rendered.
+
+- `AppContext.tsx` — new `ActiveBrewSession` interface (`phase`, `paused`, `elapsed`, `totalTime`, `cups`). A single `useEffect` interval runs there. Three new context actions: `startBrewSession`, `toggleBrewPause`, `clearBrewSession`.
+- `Brew.tsx` — local timer `useEffect` removed. `elapsed` reads from `activeBrewSession.elapsed`. On mount the component reads an existing session to restore `phase` and `cups` (returning from another page mid-brew resumes seamlessly). "Start brewing" now calls `startBrewSession(totalTime, cups)`.
+- `BrewPill.tsx` (new component) — floating pill hidden on `/brew` itself; visible on every other page while a brew is active. Shows a circular SVG progress ring, recipe title, time remaining, and a pause/resume toggle. Tapping the pill body navigates back to `/brew`. Positioned to account for the 240px sidebar on desktop.
+- `App.tsx` — `BrewPill` rendered in both the desktop and mobile layout branches.
+
+**iOS note:** This `activeBrewSession` context state is the natural feed for a native Live Activity / Dynamic Island notification when the app is wrapped in Capacitor (Phase 7).
+
+---
+
 ## Next up: Phase 5c — Jazz audio
 
 Wire the vinyl toggle in `SettingsModal` to actual audio playback. Options:
@@ -181,7 +204,7 @@ bloombrewvs/
       lib/                       grinderMath, recipeScaling, flavorMatch, tweakEngine, storage (all with tests)
       styles/                    theme.ts, tokens.css, base.css, animations.css
       components/                BottomNav, Sidebar, SettingsModal, PrepChecklist, ScoreSlider,
-                                 RatingBars, BrewScene, BrewTimer, RequireAuth, Header, Pill, ui.tsx
+                                 RatingBars, BrewScene, BrewTimer, BrewPill, RequireAuth, Header, Pill, ui.tsx
       pages/
         Dashboard.tsx            home; This Week card is fully dynamic (brews, avg score, methods, bar chart)
         MethodPicker.tsx         navigates to /recipes after method select (updated flow)
@@ -206,6 +229,10 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 15 (2026-04-21) — UX fixes: post-brew navigation + background brew timer + BrewPill
+
+See "Session 15 UX fixes" block above for full detail.
 
 ### Session 14 (2026-04-20) — Phase 5b: Cafes Near Me
 

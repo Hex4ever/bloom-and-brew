@@ -6,6 +6,15 @@ import { supabase } from "./lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { MethodId } from "./types";
 
+// ─── ActiveBrewSession ────────────────────────────────────────────────────────
+export interface ActiveBrewSession {
+  phase: "brewing" | "done";
+  paused: boolean;
+  elapsed: number;
+  totalTime: number;
+  cups: number;
+}
+
 // ─── PendingBrew ──────────────────────────────────────────────────────────────
 export interface PendingBrew {
   recipeId: string;
@@ -151,6 +160,10 @@ interface AppContextValue {
   setPendingBrew: (b: PendingBrew | null) => void;
   pendingTweak: JournalEntry | null;
   setPendingTweak: (e: JournalEntry | null) => void;
+  activeBrewSession: ActiveBrewSession | null;
+  startBrewSession: (totalTime: number, cups: number) => void;
+  toggleBrewPause: () => void;
+  clearBrewSession: () => void;
   dbLoading: boolean;
   dbError: string | null;
   clearDbError: () => void;
@@ -179,9 +192,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingBrew, setPendingBrew] = useState<PendingBrew | null>(null);
   const [pendingTweak, setPendingTweak] = useState<JournalEntry | null>(null);
+  const [activeBrewSession, setActiveBrewSession] = useState<ActiveBrewSession | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const clearDbError = useCallback(() => setDbError(null), []);
+
+  // Global brew timer — keeps ticking even when the user navigates away from /brew
+  useEffect(() => {
+    if (!activeBrewSession || activeBrewSession.phase !== "brewing" || activeBrewSession.paused) return;
+    const id = setInterval(() => {
+      setActiveBrewSession(prev => {
+        if (!prev || prev.phase !== "brewing" || prev.paused) return prev;
+        const next = prev.elapsed + 1;
+        if (next >= prev.totalTime) return { ...prev, elapsed: prev.totalTime, phase: "done" };
+        return { ...prev, elapsed: next };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [activeBrewSession?.phase, activeBrewSession?.paused]);
+
+  const startBrewSession = useCallback((totalTime: number, cups: number) => {
+    setActiveBrewSession({ phase: "brewing", paused: false, elapsed: 0, totalTime, cups });
+  }, []);
+
+  const toggleBrewPause = useCallback(() => {
+    setActiveBrewSession(prev => prev ? { ...prev, paused: !prev.paused } : null);
+  }, []);
+
+  const clearBrewSession = useCallback(() => {
+    setActiveBrewSession(null);
+  }, []);
 
   // Load all user data from DB on login
   useEffect(() => {
@@ -414,6 +454,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       settingsOpen, setSettingsOpen,
       pendingBrew, setPendingBrew,
       pendingTweak, setPendingTweak,
+      activeBrewSession,
+      startBrewSession, toggleBrewPause, clearBrewSession,
       dbLoading,
       dbError, clearDbError,
     }}>

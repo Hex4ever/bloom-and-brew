@@ -139,17 +139,28 @@ type Phase = "pre" | "brewing" | "done";
 
 export function Brew() {
   const navigate = useNavigate();
-  const { recipe, method, bean, grinder } = useAppContext();
+  const { recipe, method, bean, grinder, activeBrewSession, startBrewSession, clearBrewSession } = useAppContext();
   const { isDesktop } = useViewport();
 
-  const [phase, setPhase] = useState<Phase>("pre");
-  const [cups, setCups] = useState(1);
-  const [elapsed, setElapsed] = useState(0);
+  // If a session is already running (user navigated back), restore its state
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (!activeBrewSession) return "pre";
+    return activeBrewSession.phase;
+  });
+  const [cups, setCups] = useState(() => activeBrewSession?.cups ?? 1);
   const [music, setMusic] = useState(false);
 
   useEffect(() => {
     if (!recipe || !method) navigate("/methods", { replace: true });
   }, [recipe, method, navigate]);
+
+  // Keep local phase in sync when the timer completes in the background
+  useEffect(() => {
+    if (activeBrewSession?.phase === "done" && phase !== "done") setPhase("done");
+  }, [activeBrewSession?.phase, phase]);
+
+  // Elapsed comes from the shared session; 0 when in "pre" phase
+  const elapsed = activeBrewSession?.elapsed ?? 0;
 
   // Scaling
   const { params, steps, totalTime } = useMemo(() => {
@@ -168,23 +179,11 @@ export function Brew() {
     return computeGrindClicks(grinder, params.microns).clicks;
   }, [grinder, params.microns]);
 
-  // Timer
-  useEffect(() => {
-    if (phase !== "brewing") return;
-    const id = setInterval(() => {
-      setElapsed((x) => {
-        if (x + 1 >= totalTime) { clearInterval(id); setPhase("done"); return totalTime; }
-        return x + 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [phase, totalTime]);
-
   const currentIdx = steps.reduce((acc, s, i) => (elapsed >= s.t ? i : acc), 0);
   const current = steps[currentIdx];
   const next = steps[currentIdx + 1];
 
-  const resetBrew = () => { setElapsed(0); setPhase("pre"); };
+  const resetBrew = () => { setPhase("pre"); clearBrewSession(); };
 
   if (!recipe || !method) return null;
 
@@ -236,7 +235,10 @@ export function Brew() {
 
           <PrepChecklist methodId={method.id} />
 
-          <button onClick={() => setPhase("brewing")} style={{ ...primaryBtn, width: "100%", marginTop: 8 }}>
+          <button
+            onClick={() => { setPhase("brewing"); startBrewSession(totalTime, cups); }}
+            style={{ ...primaryBtn, width: "100%", marginTop: 8 }}
+          >
             Start brewing
           </button>
         </div>
@@ -289,7 +291,7 @@ export function Brew() {
             scaledWater={params.water}
             scaledTemp={params.temp}
             clicks={clicksNum}
-            onReset={() => { resetBrew(); navigate(-1); }}
+            onReset={() => { resetBrew(); navigate("/"); }}
           />
         )}
       </div>

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./AuthContext";
 import { BottomNav } from "./components/BottomNav";
 import { Sidebar } from "./components/Sidebar";
 import { SettingsModal } from "./components/SettingsModal";
+import { BrewPill } from "./components/BrewPill";
 import { RequireAuth } from "./components/RequireAuth";
 import { useViewport } from "./components/ui";
 import type { NavScreen } from "./components/BottomNav";
@@ -84,6 +85,7 @@ function Layout() {
             </div>
           </div>
         </div>
+        <BrewPill />
         {settingsOpen && (
           <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
         )}
@@ -107,6 +109,7 @@ function Layout() {
         </div>
         {showBottomNav && <BottomNav screen={currentScreen} go={go} />}
       </div>
+      <BrewPill />
       {settingsOpen && (
         <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
       )}
