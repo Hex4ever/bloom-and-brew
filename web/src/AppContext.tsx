@@ -139,6 +139,7 @@ interface AppContextValue {
   grinder: Grinder;
   setGrinder: (g: Grinder) => void;
   availableGrinders: Grinder[];
+  addGrinder: (data: { name: string; type: "Hand" | "Electric" }) => Promise<Grinder>;
   bean: Bean | null;
   setBean: (b: Bean | null) => void;
   method: Method | null;
@@ -439,10 +440,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await supabase.from("beans").delete().eq("id", id);
   }, [user]);
 
+  const addGrinder = useCallback(async (data: { name: string; type: "Hand" | "Electric" }): Promise<Grinder> => {
+    // Sensible defaults: Hand ≈ Comandante C40 step density, Electric ≈ Baratza Encore
+    const clicksPerMicron = data.type === "Hand" ? 0.033 : 0.025;
+    const optimistic: Grinder = { id: `custom-${Date.now()}`, name: data.name, clicksPerMicron, type: data.type };
+    setAvailableGrinders(prev => [...prev, optimistic]);
+
+    if (!user) return optimistic;
+
+    const { data: row, error } = await supabase
+      .from("grinders")
+      .insert({ user_id: user.id, name: data.name, clicks_per_1000um: clicksPerMicron * 1000, grinder_type: data.type })
+      .select()
+      .single();
+
+    if (error || !row) return optimistic;
+    const saved = dbGrinderToLocal(row as unknown as DbGrinder);
+    setAvailableGrinders(prev => [...prev.filter(g => g.id !== optimistic.id), saved]);
+    return saved;
+  }, [user]);
+
   return (
     <AppContext.Provider value={{
       grinder, setGrinder,
-      availableGrinders,
+      availableGrinders, addGrinder,
       bean, setBean,
       method, setMethod,
       recipe, setRecipe,
