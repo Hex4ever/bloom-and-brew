@@ -17,17 +17,20 @@ export function Setup() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customType, setCustomType] = useState<"Hand" | "Electric">("Hand");
+  const [customMicrons, setCustomMicrons] = useState("");
   const [addingGrinder, setAddingGrinder] = useState(false);
 
   const handleAddGrinder = async () => {
     if (!customName.trim()) return;
     setAddingGrinder(true);
-    const saved = await addGrinder({ name: customName.trim(), type: customType });
+    const micronsPerClick = customMicrons ? parseFloat(customMicrons) : undefined;
+    const saved = await addGrinder({ name: customName.trim(), type: customType, micronsPerClick });
     setGrinder(saved);
     setAddingGrinder(false);
     setShowAddForm(false);
     setShowPicker(false);
     setCustomName("");
+    setCustomMicrons("");
   };
 
   return (
@@ -174,7 +177,7 @@ export function Setup() {
                         onChange={(e) => setCustomName(e.target.value)}
                         style={{ ...inputStyle, marginBottom: 12 }}
                       />
-                      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                         {(["Hand", "Electric"] as const).map((t) => (
                           <button key={t} onClick={() => setCustomType(t)} style={{
                             flex: 1, padding: "10px 0",
@@ -185,8 +188,22 @@ export function Setup() {
                           }}>{t}</button>
                         ))}
                       </div>
+                      <div style={{ fontSize: 10, letterSpacing: "0.15em", color: T.creamDim, marginBottom: 6 }}>
+                        MICRONS PER CLICK <span style={{ opacity: 0.5 }}>— OPTIONAL</span>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        placeholder={customType === "Hand" ? "Default ~30 (e.g. Comandante)" : "Default ~40 (e.g. Encore)"}
+                        value={customMicrons}
+                        onChange={(e) => setCustomMicrons(e.target.value)}
+                        style={{ ...inputStyle, marginBottom: 10 }}
+                      />
                       <div style={{ fontSize: 10, color: T.creamDim, marginBottom: 16, lineHeight: 1.6 }}>
-                        Grind click counts will be approximate and based on a typical {customType.toLowerCase()} grinder. You can adjust during your brew.
+                        {customMicrons && !isNaN(parseFloat(customMicrons)) && parseFloat(customMicrons) > 0
+                          ? `Each click = ${parseFloat(customMicrons)} µm · click counts will be accurate for your grinder.`
+                          : `Usually in your grinder's spec sheet or reviews. Leave blank and we'll use a sensible default.`}
                       </div>
                       <button
                         onClick={() => void handleAddGrinder()}

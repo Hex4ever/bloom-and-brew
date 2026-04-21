@@ -139,7 +139,7 @@ interface AppContextValue {
   grinder: Grinder;
   setGrinder: (g: Grinder) => void;
   availableGrinders: Grinder[];
-  addGrinder: (data: { name: string; type: "Hand" | "Electric" }) => Promise<Grinder>;
+  addGrinder: (data: { name: string; type: "Hand" | "Electric"; micronsPerClick?: number }) => Promise<Grinder>;
   bean: Bean | null;
   setBean: (b: Bean | null) => void;
   method: Method | null;
@@ -440,9 +440,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await supabase.from("beans").delete().eq("id", id);
   }, [user]);
 
-  const addGrinder = useCallback(async (data: { name: string; type: "Hand" | "Electric" }): Promise<Grinder> => {
-    // Sensible defaults: Hand ≈ Comandante C40 step density, Electric ≈ Baratza Encore
-    const clicksPerMicron = data.type === "Hand" ? 0.033 : 0.025;
+  const addGrinder = useCallback(async (data: { name: string; type: "Hand" | "Electric"; micronsPerClick?: number }): Promise<Grinder> => {
+    // If user provided microns-per-click, convert. Otherwise fall back to type defaults.
+    // Hand default ≈ Comandante C40 (~30 µm/click). Electric default ≈ Baratza Encore (~40 µm/click).
+    const fallback = data.type === "Hand" ? 0.033 : 0.025;
+    const clicksPerMicron = data.micronsPerClick && data.micronsPerClick > 0
+      ? 1 / data.micronsPerClick
+      : fallback;
     const optimistic: Grinder = { id: `custom-${Date.now()}`, name: data.name, clicksPerMicron, type: data.type };
     setAvailableGrinders(prev => [...prev, optimistic]);
 
