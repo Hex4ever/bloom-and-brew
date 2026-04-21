@@ -15,16 +15,20 @@ interface PlaceResult {
   area: string;
   dist: string;
   rating: number;
+  reviewCount: number;
   tags: string[];
   place_id: string;
   lat: number;
   lng: number;
 }
 
+const MIN_REVIEW_COUNT = 50;
+
 interface GooglePlace {
   id: string;
   displayName?: { text: string };
   rating?: number;
+  userRatingCount?: number;
   shortFormattedAddress?: string;
   location?: { latitude: number; longitude: number };
   primaryTypeDisplayName?: { text: string };
@@ -97,6 +101,7 @@ Deno.serve(async (req) => {
   }
 
   // ── Check cache (bucket to grid cell) ──────────────────────────────────────
+  // Cache key prefix changed from "grid_" to "specialty_" to invalidate old searchNearby results
   const bucketLat = parseFloat(lat.toFixed(GRID_PRECISION));
   const bucketLng = parseFloat(lng.toFixed(GRID_PRECISION));
 
@@ -111,7 +116,7 @@ Deno.serve(async (req) => {
     .select("data, cached_at")
     .eq("lat", bucketLat)
     .eq("lng", bucketLng)
-    .eq("place_id", `grid_${bucketLat}_${bucketLng}`)
+    .eq("place_id", `specialty_${bucketLat}_${bucketLng}`)
     .gt("cached_at", cutoff)
     .maybeSingle();
 
@@ -132,18 +137,18 @@ Deno.serve(async (req) => {
 
   let googleData: { places?: GooglePlace[] };
   try {
-    const gRes = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+    const gRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": apiKey,
         "X-Goog-FieldMask":
-          "places.id,places.displayName,places.rating,places.shortFormattedAddress,places.location,places.primaryTypeDisplayName,places.editorialSummary",
+          "places.id,places.displayName,places.rating,places.userRatingCount,places.shortFormattedAddress,places.location,places.primaryTypeDisplayName,places.editorialSummary",
       },
       body: JSON.stringify({
-        includedTypes: ["cafe", "coffee_shop"],
+        textQuery: "speciality coffee",
         maxResultCount: 20,
-        locationRestriction: {
+        locationBias: {
           circle: {
             center: { latitude: lat, longitude: lng },
             radius: SEARCH_RADIUS_M,
@@ -170,35 +175,38 @@ Deno.serve(async (req) => {
     );
   }
 
-  // ── Shape results ────────────────────────────────────────────────────────────
-  const places: PlaceResult[] = (googleData.places ?? []).map((p) => {
-    const placeLat = p.location?.latitude ?? lat;
-    const placeLng = p.location?.longitude ?? lng;
-    const km = haversineKm(lat, lng, placeLat, placeLng);
-    const distStr = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  // ── Shape + filter results ───────────────────────────────────────────────────
+  const places: PlaceResult[] = (googleData.places ?? [])
+    .filter((p) => (p.userRatingCount ?? 0) >= MIN_REVIEW_COUNT)
+    .map((p) => {
+      const placeLat = p.location?.latitude ?? lat;
+      const placeLng = p.location?.longitude ?? lng;
+      const km = haversineKm(lat, lng, placeLat, placeLng);
+      const distStr = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
 
-    // Use the last part of the address as the neighbourhood/area
-    const addrParts = (p.shortFormattedAddress ?? "").split(",");
-    const area = addrParts.length > 1 ? addrParts[addrParts.length - 2].trim() : addrParts[0].trim();
+      // Use the second-to-last address component as the neighbourhood/area
+      const addrParts = (p.shortFormattedAddress ?? "").split(",");
+      const area = addrParts.length > 1 ? addrParts[addrParts.length - 2].trim() : addrParts[0].trim();
 
-    return {
-      name: p.displayName?.text ?? "Unknown",
-      area,
-      dist: distStr,
-      rating: p.rating ?? 0,
-      tags: extractTags(p),
-      place_id: p.id,
-      lat: placeLat,
-      lng: placeLng,
-    };
-  });
+      return {
+        name: p.displayName?.text ?? "Unknown",
+        area,
+        dist: distStr,
+        rating: p.rating ?? 0,
+        reviewCount: p.userRatingCount ?? 0,
+        tags: extractTags(p),
+        place_id: p.id,
+        lat: placeLat,
+        lng: placeLng,
+      };
+    });
 
   // ── Upsert to cache ──────────────────────────────────────────────────────────
   await serviceClient.from("cafes_cache").upsert(
     {
       lat: bucketLat,
       lng: bucketLng,
-      place_id: `grid_${bucketLat}_${bucketLng}`,
+      place_id: `specialty_${bucketLat}_${bucketLng}`,
       data: places,
       cached_at: new Date().toISOString(),
     },

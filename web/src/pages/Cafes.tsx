@@ -13,6 +13,7 @@ interface CafeResult {
   area: string;
   dist: string;
   rating: number;
+  reviewCount?: number;
   tags: string[];
   place_id?: string;
   lat?: number;
@@ -105,7 +106,7 @@ export function Cafes() {
               {locating
                 ? "Finding cafes near you..."
                 : isRealResults
-                ? "Sorted by distance · tap to navigate"
+                ? "Speciality coffee near you · sorted by distance"
                 : "Demo locations · tap to open in Maps"}
             </div>
           </div>
@@ -148,8 +149,17 @@ export function Cafes() {
                     </div>
                   </div>
                   {c.rating > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.accent, fontSize: 12 }}>
-                      <Star size={11} color={T.accent} /> {c.rating}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.accent, fontSize: 12 }}>
+                        <Star size={11} color={T.accent} /> {c.rating}
+                      </div>
+                      {c.reviewCount != null && (
+                        <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.05em" }}>
+                          {c.reviewCount >= 1000
+                            ? `${(c.reviewCount / 1000).toFixed(1)}k reviews`
+                            : `${c.reviewCount} reviews`}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
