@@ -2,7 +2,7 @@ import { Home, Coffee, Book, Compass, BookOpen, Users, MapPin, Settings } from "
 import { T } from "../styles/theme";
 
 // Screens that count as "Brew" for the active indicator
-const BREW_SCREENS = ["setup", "recipes", "brew"] as const;
+const BREW_SCREENS = ["setup", "methods", "recipes", "brew"] as const;
 
 export type SidebarScreen =
   | "welcome"

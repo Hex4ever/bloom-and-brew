@@ -66,7 +66,9 @@ function Layout() {
   const showBottomNav = !isDesktop && !NO_BOTTOM_NAV.has(location.pathname);
 
   const go = (screen: NavScreen | SidebarScreen) => {
-    const path = SCREEN_TO_PATH[screen] ?? `/${screen}`;
+    // "Brew" nav item enters the flow at /setup (beans → grinder → method → recipes)
+    const target = screen === "methods" ? "setup" : screen;
+    const path = SCREEN_TO_PATH[target] ?? `/${target}`;
     navigate(path);
   };
 
