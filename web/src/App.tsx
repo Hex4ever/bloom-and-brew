@@ -5,6 +5,7 @@ import { BottomNav } from "./components/BottomNav";
 import { Sidebar } from "./components/Sidebar";
 import { SettingsModal } from "./components/SettingsModal";
 import { BrewPill } from "./components/BrewPill";
+import { MusicPlayer } from "./components/MusicPlayer";
 import { RequireAuth } from "./components/RequireAuth";
 import { useViewport } from "./components/ui";
 import type { NavScreen } from "./components/BottomNav";
@@ -88,6 +89,7 @@ function Layout() {
           </div>
         </div>
         <BrewPill />
+        <MusicPlayer />
         {settingsOpen && (
           <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
         )}
@@ -112,6 +114,7 @@ function Layout() {
         {showBottomNav && <BottomNav screen={currentScreen} go={go} />}
       </div>
       <BrewPill />
+      <MusicPlayer />
       {settingsOpen && (
         <SettingsModal settings={settings} setSettings={setSettings} onClose={() => setSettingsOpen(false)} onSignOut={() => { void signOut(); setSettingsOpen(false); }} />
       )}

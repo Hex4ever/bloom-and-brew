@@ -11,6 +11,7 @@ export interface Database {
           temperature_unit: "c" | "f";
           auto_play_music: boolean;
           step_notifications: boolean;
+          default_grinder_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -20,6 +21,7 @@ export interface Database {
           temperature_unit?: "c" | "f";
           auto_play_music?: boolean;
           step_notifications?: boolean;
+          default_grinder_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -28,6 +30,7 @@ export interface Database {
           temperature_unit?: "c" | "f";
           auto_play_music?: boolean;
           step_notifications?: boolean;
+          default_grinder_id?: string | null;
         };
         Relationships: [];
       };

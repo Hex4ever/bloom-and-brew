@@ -5,6 +5,7 @@ import { get, set, initStorage } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { MethodId } from "./types";
+import type { Track } from "./constants/music";
 
 // ─── ActiveBrewSession ────────────────────────────────────────────────────────
 export interface ActiveBrewSession {
@@ -165,6 +166,15 @@ interface AppContextValue {
   startBrewSession: (totalTime: number, cups: number) => void;
   toggleBrewPause: () => void;
   clearBrewSession: () => void;
+  // ── Music ──
+  musicPlaying: boolean;
+  musicMuted: boolean;
+  currentTrack: Track | null;
+  setCurrentTrack: (t: Track | null) => void;
+  playMusic: () => void;
+  pauseMusic: () => void;
+  toggleMusicMute: () => void;
+  // ────────────
   dbLoading: boolean;
   dbError: string | null;
   clearDbError: () => void;
@@ -178,7 +188,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { initStorage(); }, []);
 
-  const [grinder, setGrinder] = useState<Grinder>(GRINDERS[0]);
+  const [grinder, setGrinderState] = useState<Grinder>(GRINDERS[0]);
+  const setGrinder = useCallback((g: Grinder) => {
+    setGrinderState(g);
+    set("bbrew_selected_grinder", g.id);
+    if (user) {
+      supabase.from("profiles")
+        .update({ default_grinder_id: g.id })
+        .eq("id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("grinder preference save failed:", error.message);
+        });
+    }
+  }, [user]);
   const [availableGrinders, setAvailableGrinders] = useState<Grinder[]>(GRINDERS);
   const [bean, setBean] = useState<Bean | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
@@ -194,6 +216,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pendingBrew, setPendingBrew] = useState<PendingBrew | null>(null);
   const [pendingTweak, setPendingTweak] = useState<JournalEntry | null>(null);
   const [activeBrewSession, setActiveBrewSession] = useState<ActiveBrewSession | null>(null);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const clearDbError = useCallback(() => setDbError(null), []);
@@ -212,9 +237,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [activeBrewSession?.phase, activeBrewSession?.paused]);
 
+  const playMusic = useCallback(() => setMusicPlaying(true), []);
+  const pauseMusic = useCallback(() => setMusicPlaying(false), []);
+  const toggleMusicMute = useCallback(() => setMusicMuted(prev => !prev), []);
+
   const startBrewSession = useCallback((totalTime: number, cups: number) => {
     setActiveBrewSession({ phase: "brewing", paused: false, elapsed: 0, totalTime, cups });
-  }, []);
+    if (settings.musicAuto) setMusicPlaying(true);
+  }, [settings.musicAuto]);
 
   const toggleBrewPause = useCallback(() => {
     setActiveBrewSession(prev => prev ? { ...prev, paused: !prev.paused } : null);
@@ -222,6 +252,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearBrewSession = useCallback(() => {
     setActiveBrewSession(null);
+    setMusicPlaying(false);
   }, []);
 
   // Load all user data from DB on login
@@ -234,7 +265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Profile / settings
       supabase
         .from("profiles")
-        .select("display_name, units, temperature_unit, auto_play_music, step_notifications")
+        .select("display_name, units, temperature_unit, auto_play_music, step_notifications, default_grinder_id")
         .eq("id", user.id)
         .single(),
 
@@ -259,6 +290,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .or(`user_id.is.null,user_id.eq.${user.id}`)
         .order("created_at", { ascending: true }),
     ]).then(([profileRes, journalRes, beansRes, grindersRes]) => {
+      if (profileRes.error) console.error("profile load:", profileRes.error.message);
       if (profileRes.data) {
         const d = profileRes.data;
         setSettingsState(prev => ({
@@ -266,7 +298,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           name:          d.display_name ?? prev.name,
           units:         (d.units as UserSettings["units"]) ?? prev.units,
           tempUnit:      (d.temperature_unit?.toUpperCase() as UserSettings["tempUnit"]) ?? prev.tempUnit,
-          musicAuto:     d.auto_play_music ?? prev.musicAuto,
+          // Prefer whichever source has it enabled — DB is authoritative once saved,
+          // but we don't let a stale DB `false` stomp a locally-confirmed `true`.
+          musicAuto:     d.auto_play_music || prev.musicAuto,
           notifications: d.step_notifications ?? prev.notifications,
         }));
       }
@@ -286,8 +320,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (grindersRes.data && grindersRes.data.length > 0) {
         const grinders = grindersRes.data.map(dbGrinderToLocal);
         setAvailableGrinders(grinders);
-        // Default to the first grinder
-        setGrinder(prev => grinders.find(g => g.id === prev.id) ?? grinders[0]);
+        // DB default_grinder_id is the cross-device source of truth.
+        // Fall back to localStorage cache, then to first in list.
+        const dbDefaultId   = profileRes.data?.default_grinder_id ?? null;
+        const localDefaultId = get("bbrew_selected_grinder", "");
+        const preferredId   = dbDefaultId ?? localDefaultId;
+        const resolved      = grinders.find(g => g.id === preferredId) ?? grinders[0];
+        setGrinderState(resolved);
+        set("bbrew_selected_grinder", resolved.id);
       }
 
       setDbLoading(false);
@@ -310,13 +350,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSettingsState(s);
     set("bbrew_settings", s);
     if (user) {
-      void supabase.from("profiles").upsert({
+      supabase.from("profiles").upsert({
         id:                 user.id,
         display_name:       s.name,
         units:              s.units,
         temperature_unit:   s.tempUnit.toLowerCase() as "c" | "f",
         auto_play_music:    s.musicAuto,
         step_notifications: s.notifications,
+      }, { onConflict: "id" }).then(({ error }) => {
+        if (error) console.error("profile save failed:", error.message);
       });
     }
   };
@@ -481,6 +523,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       pendingTweak, setPendingTweak,
       activeBrewSession,
       startBrewSession, toggleBrewPause, clearBrewSession,
+      musicPlaying, musicMuted, currentTrack, setCurrentTrack,
+      playMusic, pauseMusic, toggleMusicMute,
       dbLoading,
       dbError, clearDbError,
     }}>

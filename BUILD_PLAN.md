@@ -162,11 +162,19 @@ Exit criteria: ✅ confirmed 2026-04-20 — Claude streams real responses end-to
    - Sidebar and bottom nav "Brew" item now navigates to `/setup` (beans → grinder → method → recipes → brew) instead of the old `/methods` entry point
    - "Brew" nav item stays highlighted across all steps of the flow including `/methods`
 
-6. **Jazz audio** (low priority)
-   - Wire the toggle to actual audio (royalty-free stream or embedded player)
-   - Keep the existing vinyl visual widget; just make it actually play
+6. ✅ **Music during brew — self-hosted audio** (Phase 5c — 2026-04-22)
+   - Self-hosted royalty-free audio on Supabase Storage `brew-music` public bucket (2 tracks: `track1.mp3`, `track2.mp3`)
+   - `web/src/constants/music.ts` — track metadata array `{ id, title, artist, filename }[]` with Supabase Storage public URLs
+   - `web/src/components/MusicPlayer.tsx` — invisible `<audio>` at app root; shuffle-on-mount; auto-advances on track end; responds to play/pause/mute via AppContext
+   - `AppContext.tsx` — `musicPlaying`, `musicMuted`, `currentTrack`, `playMusic()`, `pauseMusic()`, `toggleMusicMute()`; `startBrewSession()` auto-plays when `settings.musicAuto`; `clearBrewSession()` pauses
+   - `BrewPill.tsx` redesigned — sleeker pill (24px ring, 5px padding, 24px buttons); music info inline in subtitle (`♫ Track · time remaining`); mute + pause buttons side-by-side on right
+   - `Brew.tsx` — `JazzWidget` shows live track title/artist; music button wired to context play/pause
 
-Exit criteria: ✅ bean scanner working. ✅ cafes show speciality results with review count filter. ✅ background brew session + BrewPill. ✅ smart grinder selection. ✅ nav flow consistent. Remaining: jazz plays.
+7. ✅ **Preference persistence fixes** (2026-04-22)
+   - `musicAuto` was silently failing to save — added `{ onConflict: 'id' }` + error logging; changed merge logic to `||` so DB `false` never stomps a locally confirmed `true`
+   - Grinder preference was never persisted — `setGrinder` now writes to `bbrew_selected_grinder` (localStorage) + `profiles.default_grinder_id` (DB for cross-device sync); migration `003_default_grinder.sql` adds the column
+
+Exit criteria: ✅ bean scanner working. ✅ cafes show speciality results with review count filter. ✅ background brew session + BrewPill. ✅ smart grinder selection. ✅ nav flow consistent. ✅ music plays during brew with shuffle, mute, and BrewPill track display. ✅ user preferences (grinder, musicAuto) persist across sessions and devices.
 
 ---
 

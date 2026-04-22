@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-21 (session 15 — continued)
-**Current phase:** Phase 5 — Jazz audio (5c) · then Phase 6 PWA
+**Last updated:** 2026-04-22 (session 16 — Phase 5c complete + preference persistence fixes)
+**Current phase:** Phase 6 — PWA manifest + service worker + notifications
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** fix(nav): Brew nav item now enters new flow at /setup (`fb798c1`)
+**Head of `main`:** docs: update PROGRESS and BUILD_PLAN for session 15 (continued) (`6552575`)
 
 ---
 
@@ -123,12 +123,14 @@ When you open a new session:
 - [x] `Setup.tsx` — bean picker in brew flow updated to show "Scan packaging" + "Enter manually" side by side (was single scan button only)
 - [x] Edge Function deployed: `supabase functions deploy scan-bean --no-verify-jwt`
 - [x] 5b — Cafes Near Me: `supabase/functions/cafes-nearby/index.ts` → Google Places Nearby Search (New API) → deployed; `Cafes.tsx` calls Edge Function on geolocation grant, falls back to `CAFES` demo data on denial or error; 24h `cafes_cache` grid-bucketed; `GOOGLE_PLACES_API_KEY` set in Supabase secrets — confirmed working 2026-04-20
-- [ ] 5c — Jazz audio: wire toggle to actual playback (royalty-free stream or embedded player)
+- [x] 5c — Music during brew: self-hosted audio on Supabase Storage `brew-music` bucket; `MusicPlayer` at app root; shuffle + auto-advance; `BrewPill` shows `♫ Track · time` inline + mute button; auto-play wired to `settings.musicAuto` — confirmed 2026-04-22
+- [x] Preference persistence fixes — `musicAuto` upsert hardened; grinder preference persists via `bbrew_selected_grinder` (localStorage) + `profiles.default_grinder_id` (DB, cross-device); migration `003_default_grinder.sql`
 
-**Exit criteria for Phase 5:** photograph a real coffee bag → fields auto-populate; cafes show real nearby results; jazz plays.
+**Exit criteria for Phase 5:** ✅ All met — 2026-04-22.
 
 **5a confirmed working:** Claude Vision reads real coffee bag labels and populates bean form fields — 2026-04-20.
 **5b confirmed working:** Real nearby cafes returned from Google Places — 2026-04-20.
+**5c confirmed working:** Music plays during brew; shuffle between tracks; BrewPill shows track info + mute; BrewPill redesigned (sleeker pill) — 2026-04-22.
 
 ## Session 15 UX fixes — done (2026-04-21)
 
@@ -179,14 +181,15 @@ Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow
 
 ---
 
-## Next up: Phase 5c — Jazz audio
+## Next up: Phase 6 — PWA + Notifications
 
-Wire the vinyl toggle in `SettingsModal` to actual audio playback. Options:
-1. Embed a royalty-free lo-fi / jazz stream (e.g. a public internet radio URL or a self-hosted mp3)
-2. Use the HTML5 `<audio>` element with `loop`; manage play/pause from the `autoPlayMusic` settings toggle
-3. Show the vinyl widget animating while playing; pause on low-battery or tab-hidden events
+1. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
+2. **Browser push notifications** for step changes during long brews (Web Push API + Supabase Edge Function dispatcher)
+3. **Imperial units** — wire the toggle end-to-end so grams become ounces in prep cards, schedule, and journal
+4. **Temperature unit** — same for C ↔ F
+5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion
 
-After 5c: move to Phase 6 — PWA manifest + service worker + notifications.
+**Pending manual step before continuing:** run `supabase/migrations/003_default_grinder.sql` in the Supabase SQL editor to add `default_grinder_id` to the `profiles` table.
 
 ---
 
@@ -229,8 +232,9 @@ bloombrewvs/
       data/                      methods, grinders, recipes, glossary, indianBeans, cafes, content, preBrew, feed
       lib/                       grinderMath, recipeScaling, flavorMatch, tweakEngine, storage (all with tests)
       styles/                    theme.ts, tokens.css, base.css, animations.css
+      constants/                 music.ts (Track type + TRACKS array + trackUrl)
       components/                BottomNav, Sidebar, SettingsModal, PrepChecklist, ScoreSlider,
-                                 RatingBars, BrewScene, BrewTimer, BrewPill, RequireAuth, Header, Pill, ui.tsx
+                                 RatingBars, BrewScene, BrewTimer, BrewPill, MusicPlayer, RequireAuth, Header, Pill, ui.tsx
       pages/
         Dashboard.tsx            home; This Week card is fully dynamic (brews, avg score, methods, bar chart)
         MethodPicker.tsx         navigates to /recipes after method select (updated flow)
@@ -255,6 +259,39 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 16 (2026-04-22) — Phase 5c music + BrewPill redesign + preference persistence
+
+#### Phase 5c — Self-hosted music during brew
+
+- `web/src/constants/music.ts` (new) — `Track` interface + `TRACKS` array pointing to Supabase Storage `brew-music` bucket public URLs; `trackUrl()` helper. Currently 2 tracks (`track1.mp3`, `track2.mp3`) uploaded to bucket.
+- `web/src/components/MusicPlayer.tsx` (new) — invisible `<audio>` element mounted at app root; builds a shuffled playlist on mount; auto-advances to next track on end; responds to `musicPlaying`/`musicMuted`/`currentTrack` from AppContext.
+- `AppContext.tsx` — added `musicPlaying`, `musicMuted`, `currentTrack`, `setCurrentTrack`, `playMusic()`, `pauseMusic()`, `toggleMusicMute()`; `startBrewSession()` calls `playMusic()` when `settings.musicAuto` is on; `clearBrewSession()` always pauses.
+- `App.tsx` — `<MusicPlayer />` rendered alongside `<BrewPill />` in both desktop and mobile layout branches.
+- `Brew.tsx` — removed local `music` state; music button now calls `playMusic()/pauseMusic()` from context; `JazzWidget` accepts `track: Track | null` prop and shows live title/artist.
+
+#### BrewPill redesign
+
+User found the pill too thick after adding the music row. Redesigned to a single compact layout:
+- Ring: 30×30 → 24×24 (r=9, stroke 1.5px)
+- Padding: `7px 14px` → `5px 8px`; buttons: 28px → 24px; gap: 10 → 8px
+- Music info (`♫ Track · time remaining`) is now inline in the subtitle line — replaces the timer text when music is playing, keeping the pill at exactly 2 text lines always
+- Mute button is a bordered 24px circle on the right, sitting next to the pause/play button — both clearly visible at the same level
+
+#### Preference persistence fixes
+
+Two bugs diagnosed and fixed:
+
+**musicAuto:** The Supabase upsert was using `void` (no error handling). Any silent failure left DB at `false`, which then overrode localStorage on every login via `d.auto_play_music ?? prev.musicAuto`. Fixed:
+- Added `{ onConflict: 'id' }` to the upsert + `.then(({ error }) => console.error(...))` for visibility
+- Changed merge logic to `d.auto_play_music || prev.musicAuto` so DB `false` never stomps a locally confirmed `true`
+
+**Grinder:** `bbrew_selected_grinder` key existed in `StorageSchema` but was never written. `setGrinder` was a bare `useState` setter; the DB load always fell back to `grinders[0]` because static grinder IDs never matched DB UUIDs. Fixed:
+- `setGrinder` wrapped in `useCallback` — writes to `bbrew_selected_grinder` localStorage + issues `profiles.update({ default_grinder_id })` for cross-device sync
+- `setGrinder` has `[user]` dependency so the DB write always has the current session
+- DB load restored to prefer `profileRes.data.default_grinder_id` (cross-device), fall back to localStorage, then `grinders[0]`
+- `supabase/migrations/003_default_grinder.sql` — adds `default_grinder_id uuid references grinders(id) on delete set null` to `profiles` (**must be run manually in Supabase SQL editor**)
+- `web/src/types/database.ts` — profiles Row/Insert/Update updated with `default_grinder_id`
 
 ### Session 15 (2026-04-21) — UX polish + cafes upgrade + smart grinder selection + nav fix
 

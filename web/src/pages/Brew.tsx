@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scale, Droplet, Flame, Disc3, Coffee, Minus, Plus, Music, Sparkles, Check } from "lucide-react";
+import type { Track } from "../constants/music";
 import { T, FONT } from "../styles/theme";
 import { useViewport, primaryBtn, ghostBtn } from "../components/ui";
 import { Header } from "../components/Header";
@@ -23,16 +24,20 @@ function PrepCard({ icon, label, v, sub }: { icon: React.ReactNode; label: strin
   );
 }
 
-function JazzWidget() {
+function JazzWidget({ track }: { track: Track | null }) {
   return (
     <div style={{ padding: "0 22px 20px" }}>
       <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ width: 42, height: 42, borderRadius: "50%", background: `radial-gradient(circle, ${T.brownDeep}, ${T.bg})`, border: `1px solid ${T.line}`, animation: "spin-slow 4s linear infinite", display: "grid", placeItems: "center" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.cream }} />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13 }}>Smooth Brew Sessions</div>
-          <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.1em" }}>FUNKY JAZZ · 3:42</div>
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {track?.title ?? "Loading…"}
+          </div>
+          <div style={{ fontSize: 10, color: T.creamDim, letterSpacing: "0.1em", marginTop: 2 }}>
+            {track ? track.artist.toUpperCase() : ""}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 24 }}>
           {[0, 1, 2, 3].map((i) => (
@@ -139,7 +144,11 @@ type Phase = "pre" | "brewing" | "done";
 
 export function Brew() {
   const navigate = useNavigate();
-  const { recipe, method, bean, grinder, activeBrewSession, startBrewSession, clearBrewSession } = useAppContext();
+  const {
+    recipe, method, bean, grinder,
+    activeBrewSession, startBrewSession, clearBrewSession,
+    musicPlaying, playMusic, pauseMusic, currentTrack,
+  } = useAppContext();
   const { isDesktop } = useViewport();
 
   // If a session is already running (user navigated back), restore its state
@@ -148,7 +157,6 @@ export function Brew() {
     return activeBrewSession.phase;
   });
   const [cups, setCups] = useState(() => activeBrewSession?.cups ?? 1);
-  const [music, setMusic] = useState(false);
 
   useEffect(() => {
     if (!recipe || !method) navigate("/methods", { replace: true });
@@ -253,12 +261,12 @@ export function Brew() {
         title="Brewing"
         onBack={() => { resetBrew(); }}
         right={
-          <button onClick={() => setMusic(!music)} style={{
-            width: 34, height: 34, border: `1px solid ${music ? T.accent : T.line}`,
-            background: music ? T.accent : "transparent", borderRadius: 999,
+          <button onClick={() => musicPlaying ? pauseMusic() : playMusic()} style={{
+            width: 34, height: 34, border: `1px solid ${musicPlaying ? T.accent : T.line}`,
+            background: musicPlaying ? T.accent : "transparent", borderRadius: 999,
             display: "grid", placeItems: "center", cursor: "pointer",
           }}>
-            <Music size={14} color={music ? T.bg : T.cream} />
+            <Music size={14} color={musicPlaying ? T.bg : T.cream} />
           </button>
         }
       />
@@ -283,7 +291,7 @@ export function Brew() {
           </div>
         </div>
 
-        {music && <JazzWidget />}
+        {musicPlaying && <JazzWidget track={currentTrack} />}
 
         {phase === "done" && (
           <DoneScreen
