@@ -38,27 +38,27 @@ describe("fmtTime", () => {
 // ─── BottomNav ─────────────────────────────────────────────────────────────
 
 describe("BottomNav", () => {
-  it("renders all 5 nav labels", () => {
-    render(<BottomNav screen="welcome" go={vi.fn()} />);
+  it("renders all 5 main nav labels plus More", () => {
+    render(<BottomNav screen="welcome" go={vi.fn()} openSettings={vi.fn()} />);
     expect(screen.getByText("Home")).toBeTruthy();
     expect(screen.getByText("Brew")).toBeTruthy();
     expect(screen.getByText("Journal")).toBeTruthy();
     expect(screen.getByText("Beans")).toBeTruthy();
     expect(screen.getByText("Cafes")).toBeTruthy();
+    expect(screen.getByText("More")).toBeTruthy();
   });
 
   it("calls go with correct id when a nav item is clicked", () => {
     const go = vi.fn();
-    render(<BottomNav screen="welcome" go={go} />);
+    render(<BottomNav screen="welcome" go={go} openSettings={vi.fn()} />);
     fireEvent.click(screen.getByText("Journal"));
     expect(go).toHaveBeenCalledWith("journal");
   });
 
   it("marks welcome as active when screen=welcome", () => {
-    render(<BottomNav screen="welcome" go={vi.fn()} />);
-    // active items use T.cream color — tested via aria or structure
-    // Here we just confirm it renders without error; visual state is design concern
-    expect(screen.getAllByRole("button")).toHaveLength(5);
+    render(<BottomNav screen="welcome" go={vi.fn()} openSettings={vi.fn()} />);
+    // 6 buttons: 5 nav items + More
+    expect(screen.getAllByRole("button")).toHaveLength(6);
   });
 });
 

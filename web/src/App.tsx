@@ -51,8 +51,8 @@ const PATH_TO_SCREEN: Record<string, string> = Object.fromEntries(
   Object.entries(SCREEN_TO_PATH).map(([k, v]) => [v, k]),
 );
 
-// Screens where BottomNav is hidden (full-bleed pages)
-const NO_BOTTOM_NAV = new Set(["/", "/brew"]);
+// Screens where BottomNav is hidden on mobile (none currently)
+const NO_BOTTOM_NAV = new Set<string>();
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ function Layout() {
         <div className="fade-up" key={location.pathname}>
           <Outlet />
         </div>
-        {showBottomNav && <BottomNav screen={currentScreen} go={go} />}
+        {showBottomNav && <BottomNav screen={currentScreen} go={go} openSettings={() => setSettingsOpen(true)} />}
       </div>
       <BrewPill />
       <MusicPlayer />
