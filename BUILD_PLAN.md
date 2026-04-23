@@ -178,12 +178,27 @@ Exit criteria: ✅ bean scanner working. ✅ cafes show speciality results with 
 
 ---
 
-## Phase 6 — Notifications & PWA polish (week 8)
+## Phase 6 — Community upgrade + Notifications & PWA polish (week 8)
 
-1. **Browser push notifications** for step changes during long brews (Web Push API + Supabase Edge Function dispatcher)
-2. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
+### 6a — Community page upgrade ✅ COMPLETE (2026-04-23)
+
+Instagram-style feed with photo sharing, comments, and native share.
+
+1. ✅ **Migration `004_community_upgrade.sql`** — `post-images` Supabase Storage bucket (public, authenticated upload, owner delete); `comments_count` added to `community_posts`; `poster_name` added to `post_comments`
+2. ✅ **Photo upload** — Composer has a real file picker; preview with remove option before posting; uploads to `post-images/{user_id}/{timestamp}.ext` on submit; `image_url` persisted to `community_posts`
+3. ✅ **Real photo display** — PostCard renders `<img>` when `image_url` is set; gradient placeholder kept for caption-only posts
+4. ✅ **Comments sheet** — slide-up modal; loads `post_comments` from DB; optimistic add with Enter-to-submit; auto-scrolls to latest; `comments_count` on post updates live in the feed
+5. ✅ **Share button** — Web Share API on mobile (native sheet → WhatsApp, Messages, etc.); clipboard copy + "Link copied" toast fallback on desktop
+6. ✅ **1 photo per post limit** — enforced at the UI level (single file picker, no multi-select)
+
+**Pending manual step:** run `supabase/migrations/004_community_upgrade.sql` in the Supabase SQL editor.
+
+### 6b — Notifications & PWA polish
+
+1. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
+2. **Browser push notifications** — brew step changes **and** community activity (new like, new comment on your post); Web Push API + Supabase Edge Function dispatcher
 3. **Imperial units** — currently cosmetic; wire the toggle end-to-end so grams become ounces in prep cards, schedule, and journal
-4. **Temperature unit** — same as above for C <-> F
+4. **Temperature unit** — same as above for C ↔ F
 5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion for animations
 
 ---

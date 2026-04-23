@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-23 (session 17 — nav polish)
-**Current phase:** Phase 6 — PWA manifest + service worker + notifications
+**Last updated:** 2026-04-23 (session 18 — Phase 6a community upgrade)
+**Current phase:** Phase 6b — PWA manifest + service worker + notifications
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** fix(nav): hide bottom nav on home page on mobile (`44f5ec6`)
+**Head of `main`:** feat(community): photo upload, comments sheet, share button (`e4c26b3`)
 
 ---
 
@@ -181,15 +181,29 @@ Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow
 
 ---
 
-## Next up: Phase 6 — PWA + Notifications
+## Phase 6a task checklist — Community upgrade
+
+- [x] `supabase/migrations/004_community_upgrade.sql` — `post-images` Storage bucket (public, RLS upload/delete); `comments_count` on `community_posts`; `poster_name` on `post_comments`
+- [x] `web/src/types/database.ts` — updated for both new columns
+- [x] `Community.tsx` — full rewrite: photo upload with preview, real `<img>` display, `CommentsSheet` slide-up modal, share button (Web Share API + clipboard fallback), 1 photo per post
+
+**Pending manual step:** run `supabase/migrations/004_community_upgrade.sql` in the Supabase SQL editor.
+
+**Exit criteria:** users can post a photo + caption, like, comment, and share to WhatsApp/other platforms from the Community feed.
+
+---
+
+## Next up: Phase 6b — PWA + Notifications
 
 1. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
-2. **Browser push notifications** for step changes during long brews (Web Push API + Supabase Edge Function dispatcher)
+2. **Browser push notifications** — brew step changes **and** community activity (new like / comment on your post); Web Push API + Supabase Edge Function dispatcher
 3. **Imperial units** — wire the toggle end-to-end so grams become ounces in prep cards, schedule, and journal
 4. **Temperature unit** — same for C ↔ F
 5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion
 
-**Pending manual step before continuing:** run `supabase/migrations/003_default_grinder.sql` in the Supabase SQL editor to add `default_grinder_id` to the `profiles` table.
+**Pending manual steps before continuing:**
+- Run `supabase/migrations/003_default_grinder.sql` — adds `default_grinder_id` to `profiles`
+- Run `supabase/migrations/004_community_upgrade.sql` — community upgrade (see above)
 
 ---
 
@@ -259,6 +273,27 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 18 (2026-04-23) — Phase 6a: Community upgrade
+
+#### Community page rewrite (`e4c26b3`)
+
+Upgraded from a caption-only feed to an Instagram-style photo sharing experience.
+
+**Migration `004_community_upgrade.sql`** (must be run manually in Supabase SQL editor):
+- Creates `post-images` Storage bucket (`public: true`) — objects served via public URL; RLS restricts insert to authenticated users, delete to the owning user (files keyed as `{user_id}/{timestamp}.ext`)
+- `comments_count integer not null default 0` added to `community_posts`
+- `poster_name text` added to `post_comments` (same denormalized pattern as `community_posts.poster_name`)
+
+**`database.ts`** — `community_posts` Row/Insert/Update updated with `comments_count`; `post_comments` Row/Insert updated with `poster_name`.
+
+**`Community.tsx` — full rewrite:**
+- `Composer` — real `<input type="file" accept="image/*">`; shows preview thumbnail with remove button; uploads to `post-images` bucket on submit via `uploadPhoto()` helper; "Posting…" disabled state during upload
+- `PostCard` — renders `<img>` when `image_url` is set (1:1 aspect ratio, `objectFit: cover`); falls back to gradient placeholder for caption-only posts; action row: Like (with count) · Comment (with count) · Share (right-aligned)
+- `CommentsSheet` — slide-up overlay (75vh, rounded top corners, backdrop closes); fetches `post_comments` on open; optimistic add; Enter-to-submit; auto-scrolls to newest comment; `comments_count` on the parent post updates live via `onCommentAdded` callback
+- **Share button** — `navigator.share` on mobile → native OS share sheet (WhatsApp, Messages, copy link, etc.); clipboard write + "Link copied to clipboard" toast fallback on desktop where Web Share API is unavailable
+
+---
 
 ### Session 17 (2026-04-23) — Nav polish
 
