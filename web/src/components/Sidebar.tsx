@@ -62,7 +62,7 @@ export function Sidebar({ screen, go, openSettings }: Props) {
             display: "grid", placeItems: "center", color: T.bg, fontSize: 14, fontWeight: 600,
           }}>✿</div>
           <div style={{ fontSize: 14, letterSpacing: "0.05em", color: T.cream, fontWeight: 300 }}>
-            Bloom <span style={{ color: T.accent }}>&amp;</span> Brew
+            BeyondPours
           </div>
         </div>
       </div>

@@ -670,10 +670,10 @@ export function Community() {
   // ── Share ──
   const sharePost = async (post: Post) => {
     const url = `${window.location.origin}/community`;
-    const text = post.caption ? `"${post.caption}" — on Bloom & Brew` : "Check out this brew on Bloom & Brew";
+    const text = post.caption ? `"${post.caption}" — on BeyondPours` : "Check out this brew on BeyondPours";
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Bloom & Brew", text, url });
+        await navigator.share({ title: "BeyondPours", text, url });
       } catch {
         // user dismissed — do nothing
       }

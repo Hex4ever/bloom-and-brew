@@ -170,7 +170,7 @@ export function SettingsModal({ settings, setSettings, onClose, onSignOut }: Pro
               ABOUT
             </div>
             <div style={{ fontSize: 12, color: T.creamDim, lineHeight: 1.6 }}>
-              Bloom &amp; Brew · v0.2<br />
+              BeyondPours · v0.2<br />
               A space to brew slower, drink better.
             </div>
           </div>

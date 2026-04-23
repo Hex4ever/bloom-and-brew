@@ -65,7 +65,7 @@ export function SignIn() {
         {/* Wordmark */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ fontSize: 13, letterSpacing: "0.18em", color: T.accent, textTransform: "uppercase", marginBottom: 8 }}>
-            Bloom &amp; Brew
+            BeyondPours
           </div>
           <div style={{ fontSize: 26, color: T.cream, fontWeight: 300, letterSpacing: "-0.01em" }}>
             Welcome back
