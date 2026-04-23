@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-22 (session 16 — Phase 5c complete + preference persistence fixes)
+**Last updated:** 2026-04-23 (session 17 — nav polish)
 **Current phase:** Phase 6 — PWA manifest + service worker + notifications
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** docs: update PROGRESS and BUILD_PLAN for session 15 (continued) (`6552575`)
+**Head of `main`:** fix(nav): hide bottom nav on home page on mobile (`44f5ec6`)
 
 ---
 
@@ -259,6 +259,20 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 17 (2026-04-23) — Nav polish
+
+Two nav fixes shipped:
+
+**`f0f8ef2` — show bottom nav on home and brew pages; add More drawer**
+- Previous state had the bottom nav hidden on `/` and `/brew`; restored visibility on both and added a "More" drawer for overflow nav items.
+
+**`44f5ec6` — hide bottom nav on home page on mobile**
+- On reflection, the home page's own navigation cards already cover every destination the bottom nav would offer — the bar was redundant and visually noisy there.
+- `NO_BOTTOM_NAV` set in `App.tsx` populated with `"/"` so `showBottomNav` returns `false` on the home route.
+- `/brew` retains the bottom nav (users mid-brew may still want to navigate away).
+
+---
 
 ### Session 16 (2026-04-22) — Phase 5c music + BrewPill redesign + preference persistence
 
