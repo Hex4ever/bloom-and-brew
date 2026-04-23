@@ -224,7 +224,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dbError, setDbError] = useState<string | null>(null);
   const clearDbError = useCallback(() => setDbError(null), []);
 
-  // Global brew timer — keeps ticking even when the user navigates away from /brew
+  // Global brew timer — deps are intentionally granular to avoid restarting the
+  // interval on every elapsed tick; setActiveBrewSession is stable.
   useEffect(() => {
     if (!activeBrewSession || activeBrewSession.phase !== "brewing" || activeBrewSession.paused) return;
     const id = setInterval(() => {
@@ -236,7 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [activeBrewSession?.phase, activeBrewSession?.paused]);
+  }, [activeBrewSession?.phase, activeBrewSession?.paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const playMusic = useCallback(() => setMusicPlaying(true), []);
   const pauseMusic = useCallback(() => setMusicPlaying(false), []);
@@ -256,9 +257,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMusicPlaying(false);
   }, []);
 
-  // Notify when brew completes — intentionally omits activeBrewSession to avoid
-  // firing on every elapsed tick; only the phase transition matters.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Notify when brew completes
   useEffect(() => {
     if (activeBrewSession?.phase === "done" && settings.notifications) {
       if (Notification.permission === "granted") {
