@@ -191,7 +191,7 @@ Instagram-style feed with photo sharing, comments, and native share.
 5. ✅ **Share button** — Web Share API on mobile (native sheet → WhatsApp, Messages, etc.); clipboard copy + "Link copied" toast fallback on desktop
 6. ✅ **1 photo per post limit** — enforced at the UI level (single file picker, no multi-select)
 
-**Pending manual step:** run `supabase/migrations/004_community_upgrade.sql` in the Supabase SQL editor.
+**Migration 004 applied** ✅
 
 ### 6b — Notifications & PWA polish
 

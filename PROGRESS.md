@@ -187,9 +187,7 @@ Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow
 - [x] `web/src/types/database.ts` — updated for both new columns
 - [x] `Community.tsx` — full rewrite: photo upload with preview, real `<img>` display, `CommentsSheet` slide-up modal, share button (Web Share API + clipboard fallback), 1 photo per post
 
-**Pending manual step:** run `supabase/migrations/004_community_upgrade.sql` in the Supabase SQL editor.
-
-**Exit criteria:** users can post a photo + caption, like, comment, and share to WhatsApp/other platforms from the Community feed.
+**Exit criteria:** users can post a photo + caption, like, comment, and share to WhatsApp/other platforms from the Community feed. ✅ Migration 004 applied.
 
 ---
 
@@ -201,9 +199,8 @@ Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow
 4. **Temperature unit** — same for C ↔ F
 5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion
 
-**Pending manual steps before continuing:**
-- Run `supabase/migrations/003_default_grinder.sql` — adds `default_grinder_id` to `profiles`
-- Run `supabase/migrations/004_community_upgrade.sql` — community upgrade (see above)
+**Pending manual step before continuing:**
+- Run `supabase/migrations/003_default_grinder.sql` — adds `default_grinder_id` to `profiles` (004 already applied)
 
 ---
 
