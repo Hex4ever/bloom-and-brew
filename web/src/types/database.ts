@@ -260,6 +260,7 @@ export interface Database {
           image_url: string | null;
           recipe_id: string | null;
           likes_count: number;
+          comments_count: number;
           created_at: string;
           poster_name: string | null;
         };
@@ -270,6 +271,7 @@ export interface Database {
           image_url?: string | null;
           recipe_id?: string | null;
           likes_count?: number;
+          comments_count?: number;
           created_at?: string;
           poster_name?: string | null;
         };
@@ -278,6 +280,7 @@ export interface Database {
           image_url?: string | null;
           recipe_id?: string | null;
           likes_count?: number;
+          comments_count?: number;
           poster_name?: string | null;
         };
         Relationships: [];
@@ -293,6 +296,7 @@ export interface Database {
           id: string;
           post_id: string;
           user_id: string;
+          poster_name: string | null;
           content: string;
           created_at: string;
         };
@@ -300,6 +304,7 @@ export interface Database {
           id?: string;
           post_id: string;
           user_id: string;
+          poster_name?: string | null;
           content: string;
           created_at?: string;
         };
