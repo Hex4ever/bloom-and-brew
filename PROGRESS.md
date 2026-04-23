@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-23 (session 19 — Phase 6b PWA + units + a11y + push)
+**Last updated:** 2026-04-23 (session 20 — Phase 6b push notification fix + go-live)
 **Current phase:** Phase 7 — Mobile apps (Capacitor decision point)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** feat(phase6b): PWA, units, accessibility, push notifications (`fe9ee0c`)
+**Head of `main`:** fix(push): request notification permission directly on toggle click (`cadc7c9`)
 
 ---
 
@@ -289,6 +289,25 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 20 (2026-04-23) — Phase 6b go-live: push notification permission fix
+
+**Deployed all push notification infrastructure to production and confirmed end-to-end.**
+
+- Ran `supabase/migrations/005_push_subscriptions.sql` in Supabase SQL editor.
+- Deployed `subscribe-push` and `send-push` Edge Functions via `supabase functions deploy`.
+- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` secrets in Supabase dashboard.
+- Added `VITE_VAPID_PUBLIC_KEY` to Vercel environment variables + triggered redeploy.
+
+**Bug fixed — permission prompt never appeared (`cadc7c9`):**
+
+Root cause: the `useEffect` in `AppContext` that calls `Notification.requestPermission()` ran on page load before auth resolved (`user = null`), hit the early return, and never re-ran when `user` resolved because `settings.notifications` was already `true` from localStorage — no dependency changed to re-trigger it.
+
+Fix: moved `requestPermission()` directly into the SettingsModal notifications toggle handler. Being triggered by a user click guarantees the prompt appears every time the setting is enabled and `Notification.permission === "default"`. The `useEffect` still handles the SW push subscription registration after permission is granted.
+
+**Confirmed working:** `Notification.permission` returns `"granted"` in production. Push subscription row visible in Supabase `push_subscriptions` table.
+
+---
 
 ### Session 19 (2026-04-23) — Phase 6b: PWA + units + accessibility + push notifications
 

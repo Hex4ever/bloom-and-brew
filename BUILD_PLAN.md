@@ -193,13 +193,13 @@ Instagram-style feed with photo sharing, comments, and native share.
 
 **Migration 004 applied** ✅
 
-### 6b — Notifications & PWA polish
+### 6b — Notifications & PWA polish ✅ COMPLETE (2026-04-23)
 
-1. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
-2. **Browser push notifications** — brew step changes **and** community activity (new like, new comment on your post); Web Push API + Supabase Edge Function dispatcher
-3. **Imperial units** — currently cosmetic; wire the toggle end-to-end so grams become ounces in prep cards, schedule, and journal
-4. **Temperature unit** — same as above for C ↔ F
-5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion for animations
+1. ✅ **PWA manifest + service worker** — `vite-plugin-pwa`; Workbox precache + StaleWhileRevalidate for Supabase curated data; 192/512 PNG icons; Apple/theme-color meta; installable on Android/desktop Chrome
+2. ✅ **Browser push notifications** — `005_push_subscriptions.sql`; `subscribe-push` + `send-push` Edge Functions deployed; VAPID secrets set in Supabase; `VITE_VAPID_PUBLIC_KEY` on Vercel; Community likes/comments dispatch push to post owner; local `Notification` on brew step change + completion; permission requested directly from the notifications toggle (user gesture — avoids timing issues with auth loading); confirmed working in production
+3. ✅ **Imperial units** — `lib/units.ts` `formatWeight`/`formatTemp`; Brew prep cards, RecipeList pills, Rating all respect `settings.units` (g ↔ oz) and `settings.tempUnit` (°C ↔ °F)
+4. ✅ **Temperature unit** — same `formatTemp` helper; milk steamed temp also converts correctly
+5. ✅ **Accessibility** — `:focus-visible` keyboard ring; `prefers-reduced-motion` disables all animations; `aria-current`, `aria-expanded`, `aria-label` on nav + header + BrewPill; `role=status` on BrewPill; decorative SVGs marked `aria-hidden`
 
 ---
 
