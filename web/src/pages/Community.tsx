@@ -132,6 +132,18 @@ function CommentsSheet({
       .update({ comments_count: post.comments_count + 1 })
       .eq("id", post.id);
 
+    // Notify the post owner (skip if commenter is the owner)
+    if (post.user_id && post.user_id !== currentUserId) {
+      void supabase.functions.invoke("send-push", {
+        body: {
+          userId: post.user_id,
+          title: "New comment on your post",
+          body: `${posterName}: ${content.slice(0, 80)}`,
+          url: "/community",
+        },
+      });
+    }
+
     onCommentAdded(post.id);
     setSubmitting(false);
   };
@@ -651,6 +663,17 @@ export function Community() {
         .from("community_posts")
         .update({ likes_count: post.likes_count + 1 })
         .eq("id", postId);
+      // Notify post owner (skip self-likes)
+      if (post.user_id && post.user_id !== user.id) {
+        void supabase.functions.invoke("send-push", {
+          body: {
+            userId: post.user_id,
+            title: "Someone liked your post",
+            body: post.caption ? `"${post.caption.slice(0, 60)}"` : "Your post got a like!",
+            url: "/community",
+          },
+        });
+      }
     } else {
       await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
       await supabase

@@ -25,6 +25,8 @@ export function BrewPill() {
   return (
     <div
       onClick={() => navigate("/brew")}
+      role="status"
+      aria-label={`Brew in progress: ${recipe?.title ?? "Brewing"}`}
       style={{
         position: "fixed",
         top: 12,
@@ -47,7 +49,7 @@ export function BrewPill() {
     >
       {/* Circular progress ring — compact */}
       <div style={{ position: "relative", width: 24, height: 24, flexShrink: 0 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="9" fill="none" stroke={T.bg3} strokeWidth="1.5" />
           <circle
             cx="12" cy="12" r="9"

@@ -98,6 +98,7 @@ export function BottomNav({ screen, go, openSettings }: Props) {
           <span style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim }}>MORE</span>
           <button
             onClick={() => setDrawerOpen(false)}
+            aria-label="Close more menu"
             style={{ background: "none", border: "none", color: T.creamDim, cursor: "pointer", padding: 2 }}
           >
             <X size={14} strokeWidth={1.5} />
@@ -137,7 +138,7 @@ export function BottomNav({ screen, go, openSettings }: Props) {
       </div>
 
       {/* Bottom bar */}
-      <div style={{
+      <nav aria-label="Main navigation" style={{
         position: "fixed", bottom: 0, width: "100%", maxWidth: 440,
         left: "50%", transform: "translateX(-50%)",
         background: T.bg, borderTop: `1px solid ${T.line}`,
@@ -152,6 +153,8 @@ export function BottomNav({ screen, go, openSettings }: Props) {
             <button
               key={it.id}
               onClick={() => { setDrawerOpen(false); go(it.id); }}
+              aria-label={it.label}
+              aria-current={active ? "page" : undefined}
               style={{
                 background: "none", border: "none",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -169,6 +172,8 @@ export function BottomNav({ screen, go, openSettings }: Props) {
         {/* More button */}
         <button
           onClick={() => setDrawerOpen((v) => !v)}
+          aria-label="More navigation options"
+          aria-expanded={drawerOpen}
           style={{
             background: "none", border: "none",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -178,7 +183,7 @@ export function BottomNav({ screen, go, openSettings }: Props) {
           <MoreHorizontal size={18} strokeWidth={1.5} />
           <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase" }}>More</span>
         </button>
-      </div>
+      </nav>
     </>
   );
 }

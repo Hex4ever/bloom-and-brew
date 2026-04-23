@@ -17,14 +17,18 @@ export function Header({ title, onBack, right }: Props) {
       gap: 14,
     }}>
       {onBack && (
-        <button onClick={onBack} style={iconBtn}>
-          <ChevronLeft size={18} color={T.cream} />
+        <button onClick={onBack} aria-label="Go back" style={iconBtn}>
+          <ChevronLeft size={18} color={T.cream} aria-hidden="true" />
         </button>
       )}
-      <div style={{
-        fontSize: 13, letterSpacing: "0.18em",
-        textTransform: "uppercase", color: T.creamDim, flex: 1,
-      }}>
+      <div
+        role="heading"
+        aria-level={1}
+        style={{
+          fontSize: 13, letterSpacing: "0.18em",
+          textTransform: "uppercase", color: T.creamDim, flex: 1,
+        }}
+      >
         {title}
       </div>
       {right}

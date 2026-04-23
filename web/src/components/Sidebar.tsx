@@ -68,7 +68,7 @@ export function Sidebar({ screen, go, openSettings }: Props) {
       </div>
 
       {/* Nav items */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <nav aria-label="Main navigation" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map((it) => {
           const active =
             screen === it.id ||
@@ -77,6 +77,7 @@ export function Sidebar({ screen, go, openSettings }: Props) {
             <button
               key={it.id}
               onClick={() => go(it.id)}
+              aria-current={active ? "page" : undefined}
               style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
                 background: active ? T.bg3 : "transparent", border: "none", borderRadius: 10,
@@ -89,7 +90,7 @@ export function Sidebar({ screen, go, openSettings }: Props) {
             </button>
           );
         })}
-      </div>
+      </nav>
 
       {/* Settings */}
       <button

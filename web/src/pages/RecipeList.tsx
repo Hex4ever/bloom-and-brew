@@ -9,6 +9,7 @@ import { useAppContext } from "../AppContext";
 import { RECIPES, METHODS } from "../data";
 import { flavorMatch, parseFlavorText } from "../lib/flavorMatch";
 import { supabase } from "../lib/supabase";
+import { formatWeight, formatTemp } from "../lib/units";
 import type { MethodId } from "../types";
 
 interface CommunityRecipe {
@@ -31,7 +32,7 @@ const SUGGESTIONS = [
 
 export function RecipeList() {
   const navigate = useNavigate();
-  const { method, bean, grinder, setRecipe, setMethod } = useAppContext();
+  const { method, bean, grinder, settings, setRecipe, setMethod } = useAppContext();
   const { isDesktop } = useViewport();
 
   const [flavorOpen, setFlavorOpen] = useState(false);
@@ -220,9 +221,9 @@ export function RecipeList() {
                 <div style={{ fontSize: 15, marginBottom: 4 }}>{r.title}</div>
                 <div style={{ fontSize: 11, color: T.creamDim, marginBottom: 10 }}>{r.author}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <Pill>{r.dose}g</Pill>
-                  <Pill>{r.water}g water</Pill>
-                  <Pill>{r.temp}°C</Pill>
+                  <Pill>{formatWeight(r.dose, settings.units)}</Pill>
+                  <Pill>{formatWeight(r.water, settings.units)} water</Pill>
+                  <Pill>{formatTemp(r.temp, settings.tempUnit)}</Pill>
                   <Pill dim>★ {r.rating}</Pill>
                   {r.hasMilk && <Pill>+ Milk</Pill>}
                 </div>
@@ -243,9 +244,9 @@ export function RecipeList() {
                 <div key={r.id} style={{ padding: "16px 18px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 14, color: T.cream }}>
                   <div style={{ fontSize: 14, marginBottom: 6 }}>{r.title}</div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {r.dose_g && <Pill>{r.dose_g}g</Pill>}
-                    {r.water_g && <Pill>{r.water_g}g water</Pill>}
-                    {r.temp_c && <Pill>{r.temp_c}°C</Pill>}
+                    {r.dose_g && <Pill>{formatWeight(r.dose_g, settings.units)}</Pill>}
+                    {r.water_g && <Pill>{formatWeight(r.water_g, settings.units)} water</Pill>}
+                    {r.temp_c && <Pill>{formatTemp(r.temp_c, settings.tempUnit)}</Pill>}
                     <Pill dim>{r.method.toUpperCase()}</Pill>
                   </div>
                   {r.notes && <div style={{ fontSize: 11, color: T.creamDim, marginTop: 8, fontStyle: "italic" }}>{r.notes}</div>}

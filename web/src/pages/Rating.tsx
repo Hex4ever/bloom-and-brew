@@ -7,11 +7,12 @@ import { Pill } from "../components/Pill";
 import { ScoreSlider } from "../components";
 import { useAppContext } from "../AppContext";
 import { SCORE_AXES } from "../data";
+import { formatWeight, formatTemp } from "../lib/units";
 import { useAuth } from "../AuthContext";
 
 export function Rating() {
   const navigate = useNavigate();
-  const { pendingBrew, setPendingBrew, saveJournalEntry, dbError, clearDbError } = useAppContext();
+  const { pendingBrew, settings, setPendingBrew, saveJournalEntry, dbError, clearDbError } = useAppContext();
   const { user } = useAuth();
   const { isDesktop } = useViewport();
 
@@ -77,9 +78,9 @@ export function Rating() {
         </div>
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 22 }}>
-          {pendingBrew.dose  != null && <Pill dim>{pendingBrew.dose}g coffee</Pill>}
-          {pendingBrew.water != null && <Pill dim>{pendingBrew.water}g water</Pill>}
-          {pendingBrew.temp  != null && <Pill dim>{pendingBrew.temp}°C</Pill>}
+          {pendingBrew.dose  != null && <Pill dim>{formatWeight(pendingBrew.dose, settings.units)} coffee</Pill>}
+          {pendingBrew.water != null && <Pill dim>{formatWeight(pendingBrew.water, settings.units)} water</Pill>}
+          {pendingBrew.temp  != null && <Pill dim>{formatTemp(pendingBrew.temp, settings.tempUnit)}</Pill>}
           {pendingBrew.clicks != null && <Pill dim>{pendingBrew.clicks} clicks</Pill>}
         </div>
 

@@ -166,6 +166,7 @@ interface AppContextValue {
   startBrewSession: (totalTime: number, cups: number) => void;
   toggleBrewPause: () => void;
   clearBrewSession: () => void;
+  notifyBrewStep: (label: string) => void;
   // ── Music ──
   musicPlaying: boolean;
   musicMuted: boolean;
@@ -254,6 +255,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setActiveBrewSession(null);
     setMusicPlaying(false);
   }, []);
+
+  // Notify when brew completes
+  useEffect(() => {
+    if (activeBrewSession?.phase === "done" && settings.notifications) {
+      if (Notification.permission === "granted") {
+        new Notification("Your brew is ready! ☕", { body: "Tap to log your rating." });
+      }
+    }
+  }, [activeBrewSession?.phase, settings.notifications]);
+
+  // Local brew-step notification (called by Brew.tsx when step changes)
+  const notifyBrewStep = useCallback((label: string) => {
+    if (!settings.notifications) return;
+    if (Notification.permission !== "granted") return;
+    new Notification("Next step", { body: label, silent: true });
+  }, [settings.notifications]);
+
+  // Register Web Push subscription when notifications are enabled
+  useEffect(() => {
+    if (!user || !settings.notifications) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    const register = async () => {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") return;
+
+      const registration = await navigator.serviceWorker.ready;
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+      if (!vapidKey) return;
+
+      let sub = await registration.pushManager.getSubscription();
+      if (!sub) {
+        sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        });
+      }
+
+      const { endpoint, keys } = sub.toJSON() as {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+      };
+
+      await supabase.functions.invoke("subscribe-push", {
+        body: { endpoint, p256dh: keys.p256dh, auth: keys.auth },
+      });
+    };
+
+    void register();
+  }, [user, settings.notifications]);
 
   // Load all user data from DB on login
   useEffect(() => {
@@ -522,7 +573,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       pendingBrew, setPendingBrew,
       pendingTweak, setPendingTweak,
       activeBrewSession,
-      startBrewSession, toggleBrewPause, clearBrewSession,
+      startBrewSession, toggleBrewPause, clearBrewSession, notifyBrewStep,
       musicPlaying, musicMuted, currentTrack, setCurrentTrack,
       playMusic, pauseMusic, toggleMusicMute,
       dbLoading,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scale, Droplet, Flame, Disc3, Coffee, Minus, Plus, Music, Sparkles, Check } from "lucide-react";
 import type { Track } from "../constants/music";
@@ -10,6 +10,7 @@ import { BrewScene, BrewTimer, PulseDot, fmtTime, PrepChecklist } from "../compo
 import { useAppContext } from "../AppContext";
 import { scaleRecipe } from "../lib/recipeScaling";
 import { computeGrindClicks } from "../lib/grinderMath";
+import { formatWeight, formatTemp } from "../lib/units";
 
 // ─── Local sub-components ─────────────────────────────────────────────────────
 
@@ -145,8 +146,8 @@ type Phase = "pre" | "brewing" | "done";
 export function Brew() {
   const navigate = useNavigate();
   const {
-    recipe, method, bean, grinder,
-    activeBrewSession, startBrewSession, clearBrewSession,
+    recipe, method, bean, grinder, settings,
+    activeBrewSession, startBrewSession, clearBrewSession, notifyBrewStep,
     musicPlaying, playMusic, pauseMusic, currentTrack,
   } = useAppContext();
   const { isDesktop } = useViewport();
@@ -191,6 +192,16 @@ export function Brew() {
   const current = steps[currentIdx];
   const next = steps[currentIdx + 1];
 
+  // Notify on step change (skip index 0 — that's the start)
+  const prevIdxRef = useRef(0);
+  useEffect(() => {
+    if (phase !== "brewing") return;
+    if (currentIdx > 0 && currentIdx !== prevIdxRef.current && current?.label) {
+      notifyBrewStep(current.label);
+    }
+    prevIdxRef.current = currentIdx;
+  }, [currentIdx, phase, current?.label, notifyBrewStep]);
+
   const resetBrew = () => { setPhase("pre"); clearBrewSession(); };
 
   if (!recipe || !method) return null;
@@ -218,12 +229,12 @@ export function Brew() {
 
           {/* Prep cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <PrepCard icon={<Scale size={16} />}  label="Dose"  v={`${params.dose} g`}  sub={bean?.name} />
-            <PrepCard icon={<Droplet size={16} />} label="Water" v={`${params.water} g`} sub={`Ratio 1:${Math.round(params.water / params.dose)}`} />
-            <PrepCard icon={<Flame size={16} />}   label="Temp"  v={`${params.temp}°C`}  sub="Heat kettle now" />
+            <PrepCard icon={<Scale size={16} />}  label="Dose"  v={formatWeight(params.dose, settings.units)}  sub={bean?.name} />
+            <PrepCard icon={<Droplet size={16} />} label="Water" v={formatWeight(params.water, settings.units)} sub={`Ratio 1:${Math.round(params.water / params.dose)}`} />
+            <PrepCard icon={<Flame size={16} />}   label="Temp"  v={formatTemp(params.temp, settings.tempUnit)}  sub="Heat kettle now" />
             <PrepCard icon={<Disc3 size={16} />}   label="Grind" v={clicksDisplay}        sub={grinder?.name} />
             {recipe.hasMilk && params.milk != null && (
-              <PrepCard icon={<Coffee size={16} />} label="Milk" v={`${params.milk} g`} sub="Steamed, ~60°C" />
+              <PrepCard icon={<Coffee size={16} />} label="Milk" v={formatWeight(params.milk, settings.units)} sub={`Steamed, ~${formatTemp(60, settings.tempUnit)}`} />
             )}
           </div>
 
