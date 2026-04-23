@@ -51,8 +51,8 @@ const PATH_TO_SCREEN: Record<string, string> = Object.fromEntries(
   Object.entries(SCREEN_TO_PATH).map(([k, v]) => [v, k]),
 );
 
-// Screens where BottomNav is hidden on mobile (none currently)
-const NO_BOTTOM_NAV = new Set<string>();
+// Screens where BottomNav is hidden on mobile
+const NO_BOTTOM_NAV = new Set(["/"]);
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
