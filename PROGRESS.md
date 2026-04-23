@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-23 (session 18 — Phase 6a community upgrade)
-**Current phase:** Phase 6b — PWA manifest + service worker + notifications
+**Last updated:** 2026-04-23 (session 19 — Phase 6b PWA + units + a11y + push)
+**Current phase:** Phase 7 — Mobile apps (Capacitor decision point)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** feat(community): photo upload, comments sheet, share button (`e4c26b3`)
+**Head of `main`:** feat(phase6b): PWA, units, accessibility, push notifications (`fe9ee0c`)
 
 ---
 
@@ -191,16 +191,35 @@ Clicking "Brew" in the sidebar or bottom nav was routing to `/methods` (old flow
 
 ---
 
-## Next up: Phase 6b — PWA + Notifications
+## Phase 6b task checklist — PWA + Notifications ✅ COMPLETE (2026-04-23)
 
-1. **PWA manifest + service worker** — installable on desktop and Android home screen; offline cache for curated recipes and glossary
-2. **Browser push notifications** — brew step changes **and** community activity (new like / comment on your post); Web Push API + Supabase Edge Function dispatcher
-3. **Imperial units** — wire the toggle end-to-end so grams become ounces in prep cards, schedule, and journal
-4. **Temperature unit** — same for C ↔ F
-5. **Accessibility pass** — keyboard navigation, ARIA labels on SVG icons, focus rings, prefers-reduced-motion
+1. ✅ **PWA manifest + service worker** — `vite-plugin-pwa`; Workbox precache + StaleWhileRevalidate for Supabase curated data; 192/512 PNG icons; Apple/theme-color meta; installable on Android/desktop
+2. ✅ **Browser push notifications** — `005_push_subscriptions.sql`; `subscribe-push` + `send-push` Edge Functions; Community likes/comments dispatch push to post owner; local `Notification` on brew step change + completion; AppContext subscribes on login
+3. ✅ **Imperial units** — `lib/units.ts` `formatWeight`/`formatTemp`; Brew, RecipeList, Rating respect settings end-to-end
+4. ✅ **Temperature unit** — same `formatTemp` helper; milk card shows correct steamed temp
+5. ✅ **Accessibility** — `:focus-visible` ring; `prefers-reduced-motion`; `aria-current`, `aria-expanded`, `aria-label` on nav + header + BrewPill; `role=status` on pill; decorative SVGs marked `aria-hidden`
 
-**Pending manual step before continuing:**
-- Run `supabase/migrations/003_default_grinder.sql` — adds `default_grinder_id` to `profiles` (004 already applied)
+**Manual steps to activate push notifications in production:**
+1. Run `supabase/migrations/005_push_subscriptions.sql` in Supabase SQL editor
+2. `supabase functions deploy subscribe-push --no-verify-jwt`
+3. `supabase functions deploy send-push --no-verify-jwt`
+4. Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` in Supabase → Edge Functions → Secrets
+
+## Next up: Phase 7 — Mobile apps
+
+Decision point: **Capacitor wrap** (Option A — fast, single codebase) vs **React Native rewrite** (Option B — native feel, more work).
+
+Recommended: **Option A (Capacitor)** — the app is already responsive and the PWA groundwork from Phase 6b makes the transition straightforward.
+
+1. `npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android`
+2. `npx cap init` + `npx cap add ios` + `npx cap add android`
+3. Replace web-only APIs: Camera → `@capacitor/camera`, Geolocation → `@capacitor/geolocation`, LocalNotifications for brew steps
+4. Configure deep links for magic-link auth on mobile
+5. App icons, splash screens
+6. TestFlight (iOS) + Google Play Internal Testing (Android)
+
+**Pending manual step still outstanding:**
+- Run `supabase/migrations/003_default_grinder.sql` if not yet applied — adds `default_grinder_id` to `profiles`
 
 ---
 
@@ -270,6 +289,41 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 19 (2026-04-23) — Phase 6b: PWA + units + accessibility + push notifications
+
+#### PWA — `vite-plugin-pwa` (`fe9ee0c`)
+
+- Installed `vite-plugin-pwa@1.2.0`; configured `VitePWA` in `vite.config.ts` with `autoUpdate` registration, precache of all assets, and `StaleWhileRevalidate` runtime cache for Supabase curated-data REST endpoints.
+- Generated 192×192 and 512×512 solid-purple PNG icons (`web/public/pwa-192.png`, `pwa-512.png`) via a one-off Node.js script (`gen-icons.cjs`) using raw PNG format + zlib deflate — no extra dependencies.
+- Updated `index.html` with `theme-color`, `apple-mobile-web-app-*` meta, and `apple-touch-icon`.
+- Build emits `dist/sw.js` + `dist/workbox-*.js` + `dist/manifest.webmanifest`.
+
+#### Imperial + temperature units
+
+- `web/src/lib/units.ts` — `formatWeight(g, units)` → `"18 g"` or `"0.6 oz"`; `formatTemp(c, tempUnit)` → `"93°C"` or `"199°F"`.
+- Brew prep cards (Dose, Water, Temp, Milk), RecipeList pills (curated + community), and Rating pill row all read from `settings.units`/`settings.tempUnit` via `useAppContext()`.
+
+#### Accessibility
+
+- `base.css` — `:focus-visible` ring: `2px solid var(--accent)`, `outline-offset: 2px`; `:focus:not(:focus-visible)` removes outline for mouse/touch.
+- `animations.css` — `@media (prefers-reduced-motion: reduce)` sets `animation-duration: 0.01ms` for all elements and explicitly disables `.fade-up`.
+- `BottomNav` — `<nav aria-label="Main navigation">`; buttons have `aria-label` + `aria-current="page"` when active; More button has `aria-expanded`.
+- `Sidebar` — `<nav aria-label="Main navigation">`; items get `aria-current`.
+- `Header` — back button gets `aria-label="Go back"` + `aria-hidden` on icon; title `div` promoted to `role="heading" aria-level={1}`.
+- `BrewPill` — `role="status"` + `aria-label` on container; SVG ring marked `aria-hidden="true"`.
+
+#### Push notifications
+
+- `supabase/migrations/005_push_subscriptions.sql` — `push_subscriptions(id, user_id, endpoint, p256dh, auth)` with unique constraint on `(user_id, endpoint)` and RLS for self-management.
+- `supabase/functions/subscribe-push/index.ts` — auth check → upsert subscription row.
+- `supabase/functions/send-push/index.ts` — fetches all subscriptions for `userId`; dispatches via `npm:web-push@3`; auto-deletes 410-expired subscriptions.
+- `Community.tsx` — `toggleLike` (on like, not unlike) and `CommentsSheet.submit` both call `supabase.functions.invoke("send-push", ...)` for the post owner, skipping self-interactions.
+- `AppContext.tsx` — on login with `settings.notifications` enabled: requests permission → subscribes to push via SW → POSTs to `subscribe-push`; `notifyBrewStep(label)` fires local `Notification` on each brew step index change; phase-→-done fires "brew is ready" notification.
+- `Brew.tsx` — `useRef` + `useEffect` watches `currentIdx` and calls `notifyBrewStep` on transitions.
+- VAPID key pair generated: public key in `VITE_VAPID_PUBLIC_KEY`; private key to be stored in Supabase secrets.
+
+---
 
 ### Session 18 (2026-04-23) — Phase 6a: Community upgrade
 

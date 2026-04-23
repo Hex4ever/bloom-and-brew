@@ -256,7 +256,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMusicPlaying(false);
   }, []);
 
-  // Notify when brew completes
+  // Notify when brew completes — intentionally omits activeBrewSession to avoid
+  // firing on every elapsed tick; only the phase transition matters.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeBrewSession?.phase === "done" && settings.notifications) {
       if (Notification.permission === "granted") {
