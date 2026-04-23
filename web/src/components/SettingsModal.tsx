@@ -100,6 +100,13 @@ export function SettingsModal({ settings, setSettings, onClose, onSignOut }: Pro
     setSettings({ ...settings, [k]: v });
   }
 
+  const handleNotificationsToggle = async (v: boolean) => {
+    if (v && "Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    set("notifications", v);
+  };
+
   return (
     <div
       onClick={onClose}
@@ -161,7 +168,7 @@ export function SettingsModal({ settings, setSettings, onClose, onSignOut }: Pro
           </SetField>
 
           <SetField label="Step notifications">
-            <Switch on={settings.notifications} onChange={(v) => set("notifications", v)} />
+            <Switch on={settings.notifications} onChange={(v) => void handleNotificationsToggle(v)} />
           </SetField>
 
           {/* About */}
