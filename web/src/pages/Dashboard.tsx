@@ -147,7 +147,7 @@ export function Dashboard() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isDesktop ? 50 : 70 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 24, height: 24, background: T.cream, borderRadius: 7, display: "grid", placeItems: "center", color: T.bg, fontSize: 12 }}>✿</div>
-          <div style={{ fontSize: 12, letterSpacing: "0.2em", color: T.creamDim }}>BLOOM <span style={{ color: T.accent }}>&amp;</span> BREW</div>
+          <div style={{ fontSize: 12, letterSpacing: "0.2em", color: T.creamDim }}>BEYONDPOURS</div>
         </div>
         {!isDesktop && (
           <button onClick={() => setSettingsOpen(true)} style={iconBtn}>
