@@ -432,7 +432,7 @@ export function Landing() {
           {/* Right — mockups */}
           <div style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-            paddingRight: "clamp(16px, 2.5vw, 40px)",
+            paddingRight: "clamp(48px, 6vw, 96px)",
             position: "relative", zIndex: 1, overflow: "visible",
           }}>
             {/* Deep ambient glow — warm amber behind mockups */}
