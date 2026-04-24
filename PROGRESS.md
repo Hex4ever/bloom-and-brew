@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-23 (session 20 — Phase 6b push notification fix + go-live)
+**Last updated:** 2026-04-24 (session 21 — pre-Phase 7 bug fixes: member count + auth overhaul)
 **Current phase:** Phase 7 — Mobile apps (Capacitor decision point)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** fix(push): request notification permission directly on toggle click (`cadc7c9`)
+**Head of `main`:** feat(auth): consolidate sign-in/sign-up, remove magic link, fix reset-password (`cd708a5`)
 
 ---
 
@@ -289,6 +289,40 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 21 (2026-04-24) — Pre-Phase 7 bug fixes: member count + auth overhaul
+
+#### Fix 1 — Dashboard Community card: live member count (`f6e65a9`)
+
+The Community card on the dashboard showed a hardcoded `"142 today"` string (leftover dummy data). The `profiles` table has one row per signed-up user but its RLS policy (`auth.uid() = id`) means a client-side `COUNT(*)` would always return 1.
+
+- `supabase/migrations/006_member_count.sql` — `get_member_count()` SECURITY DEFINER function bypasses RLS and returns `COUNT(*) FROM profiles`. Run manually in Supabase SQL editor ✅
+- `Dashboard.tsx` — `useEffect` calls `supabase.rpc("get_member_count")` on mount; shows `"N members"` or `"Loading…"` while pending.
+- Desktop dashboard layout was missing the Community card entirely — added with the same live count.
+
+#### Fix 2 — Auth overhaul: unified page, magic link removed, reset-password fixed (`cd708a5`)
+
+Five auth improvements shipped in one commit:
+
+**Unified Sign In / Sign Up on `/signin`:**
+- Tabs renamed from `"Password"` / `"Magic Link"` to `"Sign In"` / `"Sign Up"`.
+- Sign In tab: email + password + Google OAuth (unchanged behaviour).
+- Sign Up tab: name + email + password + Google OAuth (previously Google was only on the sign-in screen).
+- Magic link feature removed from UI and `AuthContext` (`signInWithMagicLink` deleted). The silent `shouldCreateUser: true` risk (magic link creating nameless accounts) is eliminated.
+- `SignUp.tsx` standalone page retired; `/signup` now redirects to `/signin` for backward compat.
+
+**Email confirmation → auto sign-in:**
+- `signUp` in `AuthContext` now passes `emailRedirectTo: window.location.origin`.
+- Clicking the confirmation link logs the user in and drops them on the dashboard automatically — no more "go back to /signin manually" step.
+
+**`/reset-password` route — was completely broken, now fixed:**
+- New `web/src/pages/auth/ResetPassword.tsx` — listens for Supabase `PASSWORD_RECOVERY` `onAuthStateChange` event (fired when the reset-link token is processed from the URL), shows "Verifying…" until ready, then exposes a new-password + confirm form.
+- Calls `supabase.auth.updateUser({ password })` on submit; on success shows confirmation and auto-navigates to `/` after 2 s.
+- Route added to `App.tsx` outside `RequireAuth` (user arrives unauthenticated from email).
+
+**Reminder:** ensure `https://bloom-and-brew-lemon.vercel.app` is in Supabase → Authentication → URL Configuration → Redirect URLs so `emailRedirectTo` is accepted.
+
+---
 
 ### Session 20 (2026-04-23) — Phase 6b go-live: push notification permission fix
 

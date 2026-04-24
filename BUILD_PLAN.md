@@ -66,20 +66,26 @@ Exit criteria: DB schema live, RLS enforced, seeds loaded, client can query cura
 
 ---
 
-## Phase 2 — Authentication (week 3)
+## Phase 2 — Authentication (week 3) ✅ COMPLETE + post-launch fixes applied
 
 Goal: users can sign up, sign in, sign out, and see their own data.
 
-1. **Email + password auth** via Supabase Auth
-2. **Magic link** fallback
-3. **OAuth** — Google and Apple (Apple is required for the iOS app store later)
-4. **Auth screens** — sign in, sign up, password reset; match the existing design language (cream CTA, amber accents, same typography)
-5. **Protected routes** — wrap the app so unauthenticated users hit a welcome screen
-6. **Auto-create a `profiles` row** via a `auth.users` insert trigger
-7. **Settings screen wired to `profiles`** — display name, units, temp unit, notifications toggle all round-trip to Supabase
-8. **Session persistence** — Supabase handles this; confirm it survives reload and app background on mobile
+1. ✅ **Email + password auth** via Supabase Auth
+2. ~~Magic link~~ — removed (2026-04-24); `shouldCreateUser: true` silently created nameless accounts; unified Sign In/Sign Up tabs replace the two-page flow
+3. ✅ **OAuth** — Google on both Sign In and Sign Up tabs; Apple deferred to Phase 7 (App Store requirement)
+4. ✅ **Auth screens** — `/signin` (unified Sign In + Sign Up tabs), `/forgot-password`, `/reset-password` (new — was a dead route until 2026-04-24 fix)
+5. ✅ **Protected routes** — `RequireAuth` guard; unauthenticated users redirect to `/signin`
+6. ✅ **Auto-create a `profiles` row** via `auth.users` insert trigger
+7. ✅ **Settings screen wired to `profiles`** — display name, units, temp unit, notifications, music toggle all persist
+8. ✅ **Session persistence** — survives reload; `emailRedirectTo` on sign-up confirmation link logs user in automatically (fixed 2026-04-24)
 
-Exit criteria: two test accounts can sign in on the deployed site and only see their own data.
+**Auth screen layout (as of 2026-04-24):**
+- `/signin` — single page, two tabs: **Sign In** (email + password + Google) and **Sign Up** (name + email + password + Google)
+- `/forgot-password` — sends reset link
+- `/reset-password` — handles `PASSWORD_RECOVERY` event, new-password form, auto-redirects to `/` on success
+- `/signup` — redirects to `/signin` (backward compat)
+
+Exit criteria: ✅ two test accounts can sign in on the deployed site and only see their own data.
 
 ---
 
