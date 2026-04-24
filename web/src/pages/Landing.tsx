@@ -196,8 +196,13 @@ function DesktopMockup() {
   return (
     <div style={{
       width: W, height: H, borderRadius: 12,
-      border: `1px solid ${T.line}`, overflow: "hidden", flexShrink: 0,
-      boxShadow: "0 8px 16px rgba(0,0,0,0.3), 0 28px 56px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04)",
+      border: `1px solid rgba(42,36,33,0.8)`, overflow: "hidden", flexShrink: 0,
+      boxShadow: [
+        "0 8px 16px rgba(0,0,0,0.35)",
+        "0 28px 56px rgba(0,0,0,0.5)",
+        "0 0 0 1px rgba(255,255,255,0.05)",
+        "inset 0 1px 0 rgba(255,255,255,0.07)",
+      ].join(", "),
     }}>
       <div style={{
         height: CHROME, background: "#111009", borderBottom: `1px solid ${T.line}`,
@@ -233,8 +238,8 @@ function PhoneMockup() {
   return (
     <div style={{
       width: W, height: H, borderRadius: 28,
-      border: `2px solid ${T.line}`, overflow: "hidden", flexShrink: 0,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+      border: `1.5px solid rgba(42,36,33,0.8)`, overflow: "hidden", flexShrink: 0,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08)",
       background: T.bg,
     }}>
       <div style={{ height: NOTCH, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -264,9 +269,10 @@ export function Landing() {
       const mobile = vw < 1080;
       setIsMobile(mobile);
       if (!mobile) {
-        const leftW = Math.min(vw * 0.48, 600);
-        const rightW = vw - leftW - 56; // subtract right padding
-        setMockupScale(Math.min(1, rightW / GROUP_W));
+        const leftW = Math.min(vw * 0.44, 560);
+        const rightW = vw - leftW - 48;
+        // allow scaling UP so mockups fill the right section (cap at 1.4×)
+        setMockupScale(Math.min(1.4, Math.max(0.65, (rightW - 40) / GROUP_W)));
       }
     };
     check();
@@ -288,17 +294,22 @@ export function Landing() {
 
   return (
     <div style={{
-      height: "100vh", background: T.bg, fontFamily: FONT,
+      height: "100vh", fontFamily: FONT,
       color: T.cream, letterSpacing: "0.01em",
       display: "flex", flexDirection: "column", overflow: "hidden",
+      background: "linear-gradient(145deg, #0e0b09 0%, #0a0807 45%, #0c0908 100%)",
     }}>
 
-      {/* Nav */}
+      {/* Nav — frosted glass */}
       <nav style={{
         flexShrink: 0, height: 52,
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: `1px solid rgba(42,36,33,0.7)`,
         padding: "0 clamp(20px, 4vw, 40px)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(10,8,7,0.72)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        position: "relative", zIndex: 10,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <div style={{
@@ -309,9 +320,13 @@ export function Landing() {
           <span style={{ fontSize: 11, letterSpacing: "0.2em", color: T.accent, textTransform: "uppercase" }}>BeyondPours</span>
         </div>
         <Link to="/signin" style={{
-          padding: "7px 17px", background: "transparent",
-          border: `1px solid ${T.line}`, borderRadius: 9,
-          color: T.cream, fontFamily: FONT, fontSize: 13, textDecoration: "none",
+          padding: "7px 17px",
+          background: "rgba(28,24,22,0.6)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          border: `1px solid rgba(42,36,33,0.9)`,
+          borderRadius: 9, color: T.cream,
+          fontFamily: FONT, fontSize: 13, textDecoration: "none",
         }}>
           Sign In
         </Link>
@@ -356,14 +371,23 @@ export function Landing() {
           <PhoneMockup />
         </div>
       ) : (
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+          {/* Full-hero ambient gradient */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
+            background: [
+              "radial-gradient(ellipse at 20% 45%, rgba(139,90,43,0.07) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 85% 25%, rgba(212,165,116,0.04) 0%, transparent 40%)",
+              "radial-gradient(ellipse at 50% 100%, rgba(107,68,35,0.05) 0%, transparent 45%)",
+            ].join(", "),
+          }} />
 
           {/* Left — text */}
           <div style={{
-            width: "50%", maxWidth: 620,
+            width: "44%", maxWidth: 560,
             display: "flex", flexDirection: "column", justifyContent: "center",
-            padding: "0 clamp(36px, 4vw, 60px) 0 clamp(52px, 6vw, 88px)",
-            flexShrink: 0,
+            padding: "0 clamp(28px, 3vw, 48px) 0 clamp(48px, 5.5vw, 76px)",
+            flexShrink: 0, position: "relative", zIndex: 1,
           }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -394,8 +418,12 @@ export function Landing() {
                 fontWeight: 600, fontFamily: FONT, whiteSpace: "nowrap",
               }}>Start brewing free</Link>
               <Link to="/signin" style={{
-                padding: "13px 22px", background: T.bg2, color: T.cream,
-                border: `1px solid ${T.line}`, borderRadius: 11,
+                padding: "13px 22px",
+                background: "rgba(28,24,22,0.6)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                border: `1px solid rgba(42,36,33,0.9)`,
+                borderRadius: 11, color: T.cream,
                 textDecoration: "none", fontSize: 14, fontFamily: FONT, whiteSpace: "nowrap",
               }}>Sign In →</Link>
             </div>
@@ -404,27 +432,28 @@ export function Landing() {
           {/* Right — mockups */}
           <div style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-            paddingRight: "clamp(16px, 3vw, 48px)", position: "relative",
+            paddingRight: "clamp(16px, 2.5vw, 40px)",
+            position: "relative", zIndex: 1, overflow: "visible",
           }}>
-            {/* Warm glow */}
+            {/* Deep ambient glow — warm amber behind mockups */}
             <div style={{
               position: "absolute", inset: 0,
-              background: "radial-gradient(ellipse at 55% 50%, rgba(139,90,43,0.09) 0%, transparent 65%)",
+              background: [
+                "radial-gradient(ellipse at 55% 48%, rgba(212,165,116,0.08) 0%, transparent 52%)",
+                "radial-gradient(ellipse at 70% 65%, rgba(139,90,43,0.07) 0%, transparent 40%)",
+              ].join(", "),
               pointerEvents: "none",
             }} />
-            {/* Mockup group — scales to fit available width */}
+            {/* Mockup group — scales to fill right section */}
             <div style={{
-              position: "relative",
+              position: "relative", flexShrink: 0,
               transform: `scale(${mockupScale})`,
               transformOrigin: "center center",
-              flexShrink: 0,
+              filter: "drop-shadow(0 24px 56px rgba(139,90,43,0.2)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))",
             }}>
               <DesktopMockup />
-              {/* Phone overlapping bottom-right corner of desktop */}
-              <div style={{
-                position: "absolute", bottom: -20, right: -68, zIndex: 5,
-                filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.6))",
-              }}>
+              {/* Phone overlapping bottom-right corner */}
+              <div style={{ position: "absolute", bottom: -20, right: -68, zIndex: 5 }}>
                 <PhoneMockup />
               </div>
             </div>
