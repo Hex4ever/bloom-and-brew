@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./AppContext";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { BottomNav } from "./components/BottomNav";
@@ -11,8 +11,8 @@ import { useViewport } from "./components/ui";
 import type { NavScreen } from "./components/BottomNav";
 import type { SidebarScreen } from "./components/Sidebar";
 import { SignIn } from "./pages/auth/SignIn";
-import { SignUp } from "./pages/auth/SignUp";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
+import { ResetPassword } from "./pages/auth/ResetPassword";
 import {
   Dashboard,
   MethodPicker,
@@ -127,8 +127,9 @@ function Layout() {
 const router = createBrowserRouter([
   // ── Auth routes (no session required) ──
   { path: "/signin",          element: <SignIn /> },
-  { path: "/signup",          element: <SignUp /> },
+  { path: "/signup",          element: <Navigate to="/signin" replace /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/reset-password",  element: <ResetPassword /> },
 
   // ── Protected app routes ──
   {
