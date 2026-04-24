@@ -427,6 +427,31 @@ export function Landing() {
                 textDecoration: "none", fontSize: 14, fontFamily: FONT, whiteSpace: "nowrap",
               }}>Sign In →</Link>
             </div>
+
+            {/* Feature pills */}
+            <div style={{
+              marginTop: 40, paddingTop: 24,
+              borderTop: `1px solid rgba(42,36,33,0.5)`,
+              display: "flex", gap: 8, flexWrap: "wrap",
+            }}>
+              {([
+                { Icon: Coffee,   label: "9 brew methods"  },
+                { Icon: Sparkles, label: "AI recipe tuning" },
+                { Icon: MapPin,   label: "Cafe finder"      },
+                { Icon: Users,    label: "Community"        },
+              ] as const).map(({ Icon, label }) => (
+                <div key={label} style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 11px",
+                  background: T.bg2, border: `1px solid ${T.line}`,
+                  borderRadius: 20,
+                  fontSize: 11, color: T.creamDim, letterSpacing: "0.04em",
+                }}>
+                  <Icon size={10} strokeWidth={1.8} color={T.accent} />
+                  {label}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Right — mockups */}
