@@ -229,21 +229,23 @@ function DesktopMockup() {
 }
 
 // Phone frame — inner content is 1/SCALE size, CSS-scaled
-function PhoneMockup() {
+function PhoneMockup({ size = 1 }: { size?: number }) {
   const SCALE = 0.5;
-  const W = 136, NOTCH = 18, H = 272;
+  const W = Math.round(136 * size);
+  const H = Math.round(272 * size);
+  const NOTCH = Math.round(18 * size);
   const IW = Math.round(W / SCALE);
   const IH = Math.round((H - NOTCH) / SCALE);
 
   return (
     <div style={{
-      width: W, height: H, borderRadius: 28,
+      width: W, height: H, borderRadius: Math.round(28 * size),
       border: `1.5px solid rgba(42,36,33,0.8)`, overflow: "hidden", flexShrink: 0,
       boxShadow: "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08)",
       background: T.bg,
     }}>
       <div style={{ height: NOTCH, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 52, height: 7, borderRadius: 4, background: "#060504" }} />
+        <div style={{ width: Math.round(52 * size), height: Math.round(7 * size), borderRadius: Math.round(4 * size), background: "#060504" }} />
       </div>
       <div style={{ width: W, height: H - NOTCH, overflow: "hidden" }}>
         <div style={{ width: IW, height: IH, transform: `scale(${SCALE})`, transformOrigin: "top left", pointerEvents: "none" }}>
@@ -337,38 +339,89 @@ export function Landing() {
         <div style={{
           flex: 1, overflow: "auto",
           display: "flex", flexDirection: "column", alignItems: "center",
-          padding: "36px 24px 32px", gap: 36, textAlign: "center",
+          padding: "36px 24px 48px", textAlign: "center",
+          position: "relative",
         }}>
-          <div>
+          {/* Ambient glow */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: [
+              "radial-gradient(ellipse at 50% 10%, rgba(139,90,43,0.09) 0%, transparent 55%)",
+              "radial-gradient(ellipse at 50% 85%, rgba(212,165,116,0.07) 0%, transparent 45%)",
+            ].join(", "),
+          }} />
+
+          {/* Text + CTAs */}
+          <div style={{ width: "100%", maxWidth: 420, position: "relative", zIndex: 1, marginBottom: 40 }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "4px 12px", background: T.bg2, border: `1px solid ${T.line}`,
-              borderRadius: 20, fontSize: 10, color: T.creamDim, letterSpacing: "0.08em", marginBottom: 20,
+              borderRadius: 20, fontSize: 10, color: T.creamDim, letterSpacing: "0.08em", marginBottom: 22,
             }}>
               <span style={{ color: T.accent, fontSize: 8 }}>✦</span> For specialty coffee enthusiasts
             </div>
             <h1 style={{
               fontSize: "clamp(32px, 9vw, 44px)", fontWeight: 200,
-              letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 16px",
+              letterSpacing: "-0.02em", lineHeight: 1.1, margin: "0 0 18px",
             }}>
               Craft your perfect cup,<br />
               <span style={{ color: T.accent }}>every single time.</span>
             </h1>
             <p style={{ fontSize: 14, color: T.creamDim, fontWeight: 300, lineHeight: 1.65, margin: "0 0 28px" }}>
-              BeyondPours is your intelligent brewing companion.
+              BeyondPours is your intelligent brewing companion — track every brew, fine-tune recipes with AI, and discover the best of Indian specialty coffee.
             </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
               <Link to="/signin" style={{
                 padding: "12px 24px", background: T.accent, color: T.bg,
                 borderRadius: 11, textDecoration: "none", fontSize: 14, fontWeight: 600, fontFamily: FONT,
               }}>Start brewing free</Link>
               <Link to="/signin" style={{
-                padding: "12px 20px", background: T.bg2, color: T.cream,
-                border: `1px solid ${T.line}`, borderRadius: 11, textDecoration: "none", fontSize: 14, fontFamily: FONT,
-              }}>Sign In</Link>
+                padding: "12px 20px",
+                background: "rgba(28,24,22,0.6)",
+                backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                border: `1px solid rgba(42,36,33,0.9)`,
+                borderRadius: 11, color: T.cream,
+                textDecoration: "none", fontSize: 14, fontFamily: FONT,
+              }}>Sign In →</Link>
+            </div>
+
+            {/* Feature pills */}
+            <div style={{
+              paddingTop: 20, borderTop: `1px solid rgba(42,36,33,0.5)`,
+              display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center",
+            }}>
+              {([
+                { Icon: Coffee,   label: "9 brew methods"  },
+                { Icon: Sparkles, label: "AI recipe tuning" },
+                { Icon: MapPin,   label: "Cafe finder"      },
+                { Icon: Users,    label: "Community"        },
+              ] as const).map(({ Icon, label }) => (
+                <div key={label} style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 11px",
+                  background: T.bg2, border: `1px solid ${T.line}`,
+                  borderRadius: 20, fontSize: 11, color: T.creamDim, letterSpacing: "0.04em",
+                }}>
+                  <Icon size={10} strokeWidth={1.8} color={T.accent} />
+                  {label}
+                </div>
+              ))}
             </div>
           </div>
-          <PhoneMockup />
+
+          {/* Phone mockup with glow */}
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{
+              position: "absolute", inset: "-40px",
+              background: "radial-gradient(ellipse at 50% 50%, rgba(212,165,116,0.12) 0%, transparent 68%)",
+              pointerEvents: "none",
+            }} />
+            <div style={{
+              filter: "drop-shadow(0 20px 48px rgba(139,90,43,0.25)) drop-shadow(0 8px 16px rgba(0,0,0,0.5))",
+            }}>
+              <PhoneMockup size={1.6} />
+            </div>
+          </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
