@@ -269,7 +269,7 @@ export function Landing() {
       const mobile = vw < 1080;
       setIsMobile(mobile);
       if (!mobile) {
-        const leftW = Math.min(vw * 0.44, 560);
+        const leftW = vw * 0.48; // no maxWidth cap — column is exactly 48% of viewport
         const rightW = vw - leftW - 48;
         // allow scaling UP so mockups fill the right section (cap at 1.4×)
         setMockupScale(Math.min(1.4, Math.max(0.65, (rightW - 40) / GROUP_W)));
@@ -384,9 +384,9 @@ export function Landing() {
 
           {/* Left — text */}
           <div style={{
-            width: "44%", maxWidth: 560,
+            width: "48%",
             display: "flex", flexDirection: "column", justifyContent: "center",
-            padding: "0 clamp(28px, 3vw, 48px) 0 clamp(48px, 5.5vw, 76px)",
+            padding: "0 clamp(24px, 2.5vw, 40px) 0 clamp(40px, 4.5vw, 64px)",
             flexShrink: 0, position: "relative", zIndex: 1,
           }}>
             <div style={{
@@ -398,16 +398,16 @@ export function Landing() {
               <span style={{ color: T.accent, fontSize: 9 }}>✦</span> For specialty coffee enthusiasts
             </div>
             <h1 style={{
-              fontSize: "clamp(38px, 3.8vw, 60px)", fontWeight: 200,
-              letterSpacing: "-0.03em", lineHeight: 1.08,
+              fontSize: "clamp(30px, 2.6vw, 40px)", fontWeight: 200,
+              letterSpacing: "-0.025em", lineHeight: 1.1,
               margin: "0 0 24px", color: T.cream,
             }}>
               Craft your perfect cup,<br />
               <span style={{ color: T.accent }}>every single time.</span>
             </h1>
             <p style={{
-              fontSize: "clamp(14px, 1.2vw, 16px)", color: T.creamDim,
-              fontWeight: 300, lineHeight: 1.7, margin: "0 0 40px", maxWidth: 460,
+              fontSize: "clamp(14px, 1.15vw, 16px)", color: T.creamDim,
+              fontWeight: 300, lineHeight: 1.7, margin: "0 0 40px", maxWidth: 480,
             }}>
               BeyondPours is your intelligent brewing companion — track every brew, fine-tune recipes with AI, and discover the best of Indian specialty coffee.
             </p>
