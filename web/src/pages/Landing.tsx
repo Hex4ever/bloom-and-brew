@@ -189,7 +189,7 @@ function MobileAppContent() {
 // Desktop browser frame — inner content is 1/SCALE size, CSS-scaled
 function DesktopMockup() {
   const SCALE = 0.47;
-  const W = 570, CHROME = 34, H = 362;
+  const W = 460, CHROME = 34, H = 300;
   const IW = Math.round(W / SCALE);
   const IH = Math.round((H - CHROME) / SCALE);
 
@@ -226,7 +226,7 @@ function DesktopMockup() {
 // Phone frame — inner content is 1/SCALE size, CSS-scaled
 function PhoneMockup() {
   const SCALE = 0.5;
-  const W = 158, NOTCH = 18, H = 318;
+  const W = 136, NOTCH = 18, H = 272;
   const IW = Math.round(W / SCALE);
   const IH = Math.round((H - NOTCH) / SCALE);
 
@@ -258,13 +258,13 @@ export function Landing() {
   const [mockupScale, setMockupScale] = useState(1);
 
   useEffect(() => {
-    const GROUP_W = 570 + 86; // desktop width + phone overhang
+    const GROUP_W = 460 + 68; // desktop width + phone overhang
     const check = () => {
       const vw = window.innerWidth;
       const mobile = vw < 1080;
       setIsMobile(mobile);
       if (!mobile) {
-        const leftW = Math.min(vw * 0.42, 540);
+        const leftW = Math.min(vw * 0.48, 600);
         const rightW = vw - leftW - 56; // subtract right padding
         setMockupScale(Math.min(1, rightW / GROUP_W));
       }
@@ -360,30 +360,30 @@ export function Landing() {
 
           {/* Left — text */}
           <div style={{
-            width: "42%", maxWidth: 540,
+            width: "50%", maxWidth: 620,
             display: "flex", flexDirection: "column", justifyContent: "center",
-            padding: "0 clamp(28px, 3vw, 48px) 0 clamp(36px, 5vw, 68px)",
+            padding: "0 clamp(36px, 4vw, 60px) 0 clamp(52px, 6vw, 88px)",
             flexShrink: 0,
           }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "5px 13px", background: T.bg2, border: `1px solid ${T.line}`,
               borderRadius: 20, fontSize: 10.5, color: T.creamDim, letterSpacing: "0.07em",
-              marginBottom: 28, alignSelf: "flex-start",
+              marginBottom: 32, alignSelf: "flex-start",
             }}>
               <span style={{ color: T.accent, fontSize: 9 }}>✦</span> For specialty coffee enthusiasts
             </div>
             <h1 style={{
-              fontSize: "clamp(34px, 3.4vw, 52px)", fontWeight: 200,
-              letterSpacing: "-0.025em", lineHeight: 1.08,
-              margin: "0 0 20px", color: T.cream,
+              fontSize: "clamp(38px, 3.8vw, 60px)", fontWeight: 200,
+              letterSpacing: "-0.03em", lineHeight: 1.08,
+              margin: "0 0 24px", color: T.cream,
             }}>
-              Craft your<br />perfect cup,<br />
+              Craft your perfect cup,<br />
               <span style={{ color: T.accent }}>every single time.</span>
             </h1>
             <p style={{
-              fontSize: "clamp(13px, 1.1vw, 15px)", color: T.creamDim,
-              fontWeight: 300, lineHeight: 1.65, margin: "0 0 36px", maxWidth: 400,
+              fontSize: "clamp(14px, 1.2vw, 16px)", color: T.creamDim,
+              fontWeight: 300, lineHeight: 1.7, margin: "0 0 40px", maxWidth: 460,
             }}>
               BeyondPours is your intelligent brewing companion — track every brew, fine-tune recipes with AI, and discover the best of Indian specialty coffee.
             </p>
@@ -422,7 +422,7 @@ export function Landing() {
               <DesktopMockup />
               {/* Phone overlapping bottom-right corner of desktop */}
               <div style={{
-                position: "absolute", bottom: -26, right: -86, zIndex: 5,
+                position: "absolute", bottom: -20, right: -68, zIndex: 5,
                 filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.6))",
               }}>
                 <PhoneMockup />
