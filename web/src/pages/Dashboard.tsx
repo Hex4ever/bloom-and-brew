@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Compass, MapPin, Book, Plus, Coffee,
@@ -8,6 +8,7 @@ import { ChevronRight, Settings } from "lucide-react";
 import { T, FONT } from "../styles/theme";
 import { useViewport, iconBtn } from "../components/ui";
 import { useAppContext } from "../AppContext";
+import { supabase } from "../lib/supabase";
 import { TIPS, FUN_FACTS } from "../data";
 
 // ─── Sub-components (Dashboard-only) ─────────────────────────────────────────
@@ -136,6 +137,15 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { settings, setSettingsOpen, brewLog, beanLog } = useAppContext();
   const { isDesktop } = useViewport();
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase.rpc("get_member_count").then(({ data }) => {
+      if (typeof data === "number") setMemberCount(data);
+    });
+  }, []);
+
+  const memberSub = memberCount === null ? "Loading…" : `${memberCount} member${memberCount !== 1 ? "s" : ""}`;
 
   const hr = new Date().getHours();
   const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
@@ -187,8 +197,9 @@ export function Dashboard() {
               <DashCard onClick={() => navigate("/discover")} icon={<Compass size={18} />} label="Discover beans" sub="Indian roasters" />
               <DashCard onClick={() => navigate("/cafes")}    icon={<MapPin size={18} />}  label="Cafes near me"  sub="Find a spot" />
               <DashCard onClick={() => navigate("/glossary")} icon={<Book size={18} />}    label="Coffee glossary" sub="Learn the lingo" />
-              <DashCard onClick={() => navigate("/submit")}   icon={<Plus size={18} />}    label="Add new recipe" sub="Share with us" />
+              <DashCard onClick={() => navigate("/submit")}    icon={<Plus size={18} />}    label="Add new recipe" sub="Share with us" />
               <DashCard onClick={() => navigate("/beans")}    icon={<Coffee size={18} />}  label="Bean Log"       sub={`${beanLog.length} active`} />
+              <DashCard onClick={() => navigate("/community")} icon={<Users size={18} />}  label="Community"      sub={memberSub} />
             </div>
           </div>
           <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
@@ -221,7 +232,7 @@ export function Dashboard() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }}>
             <DashCard onClick={() => navigate("/beans")}     icon={<Coffee size={18} />} label="Bean log"    sub={`${beanLog.length} active`} />
-            <DashCard onClick={() => navigate("/community")} icon={<Users size={18} />}  label="Community"   sub="142 today" />
+            <DashCard onClick={() => navigate("/community")} icon={<Users size={18} />}  label="Community"   sub={memberSub} />
           </div>
           <div style={{ display: "grid", gap: 14, marginBottom: 22 }}>
             <TipCard tip={tipOfTheDay} />
