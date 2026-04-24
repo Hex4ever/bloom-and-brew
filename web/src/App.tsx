@@ -13,6 +13,7 @@ import type { SidebarScreen } from "./components/Sidebar";
 import { SignIn } from "./pages/auth/SignIn";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { ResetPassword } from "./pages/auth/ResetPassword";
+import { Landing } from "./pages/Landing";
 import {
   Dashboard,
   MethodPicker,
@@ -34,7 +35,7 @@ import {
 // ─── Screen name ↔ path mapping ──────────────────────────────────────────────
 
 const SCREEN_TO_PATH: Record<string, string> = {
-  welcome:  "/",
+  welcome:  "/home",
   methods:  "/methods",
   setup:    "/setup",
   recipes:  "/recipes",
@@ -52,7 +53,7 @@ const PATH_TO_SCREEN: Record<string, string> = Object.fromEntries(
 );
 
 // Screens where BottomNav is hidden on mobile
-const NO_BOTTOM_NAV = new Set(["/"]);
+const NO_BOTTOM_NAV = new Set(["/home"]);
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -125,9 +126,10 @@ function Layout() {
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 const router = createBrowserRouter([
-  // ── Auth routes (no session required) ──
-  { path: "/signin",          element: <SignIn /> },
-  { path: "/signup",          element: <Navigate to="/signin" replace /> },
+  // ── Public routes ──
+  { path: "/",               element: <Landing /> },
+  { path: "/signin",         element: <SignIn /> },
+  { path: "/signup",         element: <Navigate to="/signin" replace /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/reset-password",  element: <ResetPassword /> },
 
@@ -142,7 +144,7 @@ const router = createBrowserRouter([
       {
         element: <Layout />,
         children: [
-          { path: "/",           element: <Dashboard /> },
+          { path: "/home",       element: <Dashboard /> },
           { path: "/methods",    element: <MethodPicker /> },
           { path: "/setup",      element: <Setup /> },
           { path: "/recipes",    element: <RecipeList /> },

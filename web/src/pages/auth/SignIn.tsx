@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { T, FONT } from "../../styles/theme";
 import { useAuth } from "../../AuthContext";
@@ -63,7 +63,11 @@ function ErrorBanner({ msg }: { msg: string }) {
 
 export function SignIn() {
   const navigate = useNavigate();
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, loading, signIn, signUp, signInWithGoogle } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) navigate("/home", { replace: true });
+  }, [user, loading, navigate]);
 
   const [tab, setTab] = useState<Tab>("signin");
 
@@ -92,7 +96,7 @@ export function SignIn() {
     const { error: err } = await signIn(siEmail, siPassword);
     setBusy(false);
     if (err) { setError(err); return; }
-    navigate("/", { replace: true });
+    navigate("/home", { replace: true });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
