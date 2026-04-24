@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-24 (session 21 — pre-Phase 7 bug fixes: member count + auth overhaul)
+**Last updated:** 2026-04-24 (session 22 — public landing page for BeyondPours)
 **Current phase:** Phase 7 — Mobile apps (Capacitor decision point)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** feat(auth): consolidate sign-in/sign-up, remove magic link, fix reset-password (`cd708a5`)
+**Head of `main`:** chore: trigger Vercel redeploy (`d671215`)
 
 ---
 
@@ -289,6 +289,47 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 22 (2026-04-24) — Public landing page for BeyondPours
+
+Added a fully designed public landing page at `/` for first-time visitors. Previously `/` went straight to the sign-in screen.
+
+#### Route architecture
+
+- `web/src/pages/Landing.tsx` (new) — public marketing page at `/`
+- `App.tsx` — `/` now renders `<Landing />`; dashboard moved from `/` to `/home`; `SCREEN_TO_PATH.welcome` updated to `/home`; `NO_BOTTOM_NAV` updated to `Set(["/home"])`
+- `SignIn.tsx` — added `useEffect` redirect: already-authenticated users skip the auth screen and land on `/home`; post-sign-in navigation changed from `/` to `/home`
+- Google OAuth still redirects to `window.location.origin` (`/`); Landing's auth check bounces them to `/home` automatically
+
+#### Landing page design
+
+Single-viewport, no-scroll layout (`height: 100vh, overflow: hidden`):
+
+**Desktop (≥ 1080px):**
+- Frosted-glass nav bar (`backdrop-filter: blur(20px)`) with BeyondPours logo + Sign In button
+- Left column (48% width): badge pill, 2-line headline ("Craft your perfect cup, / every single time."), description, two CTA buttons ("Start brewing free" + glass "Sign In →"), feature pills row (9 brew methods · AI recipe tuning · Cafe finder · Community) separated by a thin divider
+- Right column: desktop browser mockup (460×300px at up to 1.4× scale) with phone mockup (136×272px) overlapping its bottom-right corner; both render full-size actual app UI via CSS `transform: scale()` + `transformOrigin: "top left"`
+- Ambient warm radial gradients across hero; dual amber glow behind mockup group; drop-shadow with amber tint on device frames; glass-edge `inset 0 1px 0 rgba(255,255,255,0.07)` highlight on frames
+- `mockupScale` state: auto-scales mockup group to fill the right section width (`Math.min(1.4, Math.max(0.65, (rightW - 40) / GROUP_W))`)
+
+**Mobile (< 1080px):**
+- Stacked layout: text/CTA block above, large phone mockup (1.6× = 218×435px) below
+- Same feature pills + divider below CTAs
+- Ambient radial gradients top and bottom
+- Amber drop-shadow glow behind phone mockup
+
+#### Commits
+- `30ff182` — initial landing page with accurate dashboard mockup
+- `e354cc5` — single-viewport layout with desktop + phone mockups
+- `3fbd622` — hero text breathing room (column sizing)
+- `6ba84f6` — gradient/glass aesthetic + mockup scale-up
+- `0537746` — fix 3-line headline (font size + column width)
+- `b401ca2` — shift mockup left (increase right padding)
+- `e454153` — feature pills below CTA (desktop)
+- `afd28b8` — mobile layout improvements (larger mockup, feature pills, gradients, glass CTA)
+- `d671215` — chore commit to re-trigger Vercel webhook
+
+---
 
 ### Session 21 (2026-04-24) — Pre-Phase 7 bug fixes: member count + auth overhaul
 

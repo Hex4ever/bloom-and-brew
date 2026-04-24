@@ -207,6 +207,16 @@ Instagram-style feed with photo sharing, comments, and native share.
 4. ✅ **Temperature unit** — same `formatTemp` helper; milk steamed temp also converts correctly
 5. ✅ **Accessibility** — `:focus-visible` keyboard ring; `prefers-reduced-motion` disables all animations; `aria-current`, `aria-expanded`, `aria-label` on nav + header + BrewPill; `role=status` on BrewPill; decorative SVGs marked `aria-hidden`
 
+### 6c — Public landing page ✅ COMPLETE (2026-04-24)
+
+Marketing landing page for first-time visitors; the app's sign-in screen is no longer the first thing a new user sees.
+
+1. ✅ **Route restructure** — `/` is now a public `Landing` route; dashboard moved to `/home`; `/signup` redirects to `/signin`; `SignIn.tsx` bounces already-authenticated users to `/home`
+2. ✅ **Single-viewport desktop layout** — frosted-glass nav; left column (48%) with badge, headline, description, CTA buttons, feature pills; right column with desktop browser mockup + phone mockup rendered via CSS `transform: scale()` from full-size app UI; mockup group auto-scales to fill right section width (up to 1.4×)
+3. ✅ **Single-viewport mobile layout** — stacked: text block + CTAs + feature pills above; large phone mockup (1.6×) below with ambient glow
+4. ✅ **Visual polish** — warm radial gradient background; amber glow behind mockups; frosted-glass CTA buttons; device frames with glass-edge `inset` highlight + drop-shadow; feature pills (9 brew methods · AI recipe tuning · Cafe finder · Community)
+5. ✅ **Mockup accuracy** — device frames render the actual `DesktopAppContent` and `MobileAppContent` components (sidebar, greeting, New brew button, DashCards, WeekStats, Tip, Fact) — not a static screenshot
+
 ---
 
 ## Phase 7 — Mobile apps (weeks 9-11)
