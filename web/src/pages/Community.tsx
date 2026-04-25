@@ -585,13 +585,20 @@ export function Community() {
 
       if (!postsData) { setLoading(false); return; }
 
-      let likedIds = new Set<string>();
-      if (user) {
-        const { data: likedData } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .eq("user_id", user.id);
-        likedIds = new Set((likedData ?? []).map((l) => l.post_id));
+      // Fetch all likes for these posts in one query (RLS allows all users to read).
+      // Count per post gives the true likes_count; checking user_id gives likedByMe —
+      // both in one round-trip, replacing the stale stored likes_count column.
+      const postIds = postsData.map((p) => p.id);
+      const { data: allLikes } = await supabase
+        .from("post_likes")
+        .select("post_id, user_id")
+        .in("post_id", postIds);
+
+      const likeCountMap = new Map<string, number>();
+      const likedByMeIds = new Set<string>();
+      for (const like of allLikes ?? []) {
+        likeCountMap.set(like.post_id, (likeCountMap.get(like.post_id) ?? 0) + 1);
+        if (user && like.user_id === user.id) likedByMeIds.add(like.post_id);
       }
 
       setPosts(
@@ -599,8 +606,9 @@ export function Community() {
           ...p,
           caption: p.caption ?? "",
           poster_name: p.poster_name ?? "Anonymous",
+          likes_count: likeCountMap.get(p.id) ?? 0,
           comments_count: p.comments_count ?? 0,
-          likedByMe: likedIds.has(p.id),
+          likedByMe: likedByMeIds.has(p.id),
         })),
       );
       setLoading(false);
