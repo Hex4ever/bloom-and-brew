@@ -364,7 +364,10 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_member_count: { Args: Record<never, never>; Returns: number };
+      increment_comments_count: { Args: { p_post_id: string }; Returns: undefined };
+    };
     Enums: Record<string, never>;
   };
 }

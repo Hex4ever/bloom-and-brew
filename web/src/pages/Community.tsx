@@ -127,10 +127,7 @@ function CommentsSheet({
       );
     }
 
-    await supabase
-      .from("community_posts")
-      .update({ comments_count: post.comments_count + 1 })
-      .eq("id", post.id);
+    await supabase.rpc("increment_comments_count", { p_post_id: post.id });
 
     // Notify the post owner (skip if commenter is the owner)
     if (post.user_id && post.user_id !== currentUserId) {
@@ -608,6 +605,28 @@ export function Community() {
     void load();
   }, [user]);
 
+  // ── Realtime: sync likes_count / comments_count when any user interacts ──
+  useEffect(() => {
+    const channel = supabase
+      .channel("community-posts-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "community_posts" },
+        (payload) => {
+          const row = payload.new as { id: string; likes_count: number; comments_count: number };
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === row.id
+                ? { ...p, likes_count: row.likes_count, comments_count: row.comments_count }
+                : p,
+            ),
+          );
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, []);
+
   // ── Add post ──
   const addPost = async (caption: string, imageUrl: string | null) => {
     if (!user) return;
@@ -659,11 +678,7 @@ export function Community() {
     );
     if (nowLiked) {
       await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
-      await supabase
-        .from("community_posts")
-        .update({ likes_count: post.likes_count + 1 })
-        .eq("id", postId);
-      // Notify post owner (skip self-likes)
+      // DB trigger on post_likes auto-updates likes_count; Realtime pushes the new value back
       if (post.user_id && post.user_id !== user.id) {
         void supabase.functions.invoke("send-push", {
           body: {
@@ -676,10 +691,7 @@ export function Community() {
       }
     } else {
       await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
-      await supabase
-        .from("community_posts")
-        .update({ likes_count: Math.max(0, post.likes_count - 1) })
-        .eq("id", postId);
+      // DB trigger on post_likes auto-updates likes_count; Realtime pushes the new value back
     }
   };
 
