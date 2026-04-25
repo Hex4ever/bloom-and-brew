@@ -63,12 +63,14 @@ function CommentsSheet({
   posterName,
   onClose,
   onCommentAdded,
+  onCountSync,
 }: {
   post: Post;
   currentUserId: string | undefined;
   posterName: string;
   onClose: () => void;
   onCommentAdded: (postId: string) => void;
+  onCountSync: (postId: string, count: number) => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,13 +85,14 @@ function CommentsSheet({
         .select("id, post_id, user_id, poster_name, content, created_at")
         .eq("post_id", post.id)
         .order("created_at", { ascending: true });
-      setComments(
-        (data ?? []).map((c) => ({ ...c, poster_name: c.poster_name ?? "Anonymous" })),
-      );
+      const loaded = (data ?? []).map((c) => ({ ...c, poster_name: c.poster_name ?? "Anonymous" }));
+      setComments(loaded);
       setLoading(false);
+      // Sync the actual count back to the feed card in case the stored count is stale
+      onCountSync(post.id, loaded.length);
     };
     void load();
-  }, [post.id]);
+  }, [post.id, onCountSync]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -695,10 +698,17 @@ export function Community() {
     }
   };
 
-  // ── Comments count increment ──
+  // ── Comments count increment (optimistic, for the current user's new comment) ──
   const handleCommentAdded = (postId: string) => {
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p)),
+    );
+  };
+
+  // ── Comments count sync (corrects stale stored count to actual DB count) ──
+  const handleCountSync = (postId: string, count: number) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, comments_count: count } : p)),
     );
   };
 
@@ -784,6 +794,7 @@ export function Community() {
           posterName={settings.name || "Anonymous"}
           onClose={() => setActiveCommentPost(null)}
           onCommentAdded={handleCommentAdded}
+          onCountSync={handleCountSync}
         />
       )}
 
