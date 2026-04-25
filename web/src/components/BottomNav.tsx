@@ -1,4 +1,4 @@
-import { Home, Coffee, Book, Compass, MapPin, MoreHorizontal, X, Users, BookOpen } from "lucide-react";
+import { Home, Coffee, Book, Compass, MapPin, MoreHorizontal, X, Users, BookOpen, Bell } from "lucide-react";
 import { useState } from "react";
 import { T } from "../styles/theme";
 
@@ -13,6 +13,7 @@ export type NavScreen =
   | "cafes"
   | "beans"
   | "feed"
+  | "notifications"
   | "glossary"
   | (typeof BREW_SCREENS)[number];
 
@@ -20,6 +21,7 @@ interface Props {
   screen: NavScreen | string;
   go: (screen: NavScreen) => void;
   openSettings: () => void;
+  unreadNotifCount?: number;
 }
 
 const mainItems: { id: NavScreen; label: string }[] = [
@@ -31,9 +33,10 @@ const mainItems: { id: NavScreen; label: string }[] = [
 ];
 
 const moreItems: { id: NavScreen; label: string }[] = [
-  { id: "beans",    label: "My Bean Log" },
-  { id: "feed",     label: "Community"   },
-  { id: "glossary", label: "Glossary"    },
+  { id: "beans",         label: "My Bean Log"   },
+  { id: "feed",          label: "Community"     },
+  { id: "notifications", label: "Notifications" },
+  { id: "glossary",      label: "Glossary"      },
 ];
 
 function NavIcon({ id, size }: { id: NavScreen; size: number }) {
@@ -46,12 +49,13 @@ function NavIcon({ id, size }: { id: NavScreen; size: number }) {
     case "cafes":    return <MapPin    {...props} />;
     case "beans":    return <BookOpen  {...props} />;
     case "feed":     return <Users     {...props} />;
-    case "glossary": return <Book      {...props} />;
-    default:         return null;
+    case "notifications": return <Bell  {...props} />;
+    case "glossary":      return <Book  {...props} />;
+    default:              return null;
   }
 }
 
-export function BottomNav({ screen, go, openSettings }: Props) {
+export function BottomNav({ screen, go, openSettings, unreadNotifCount = 0 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const moreActive = moreItems.some(
@@ -116,7 +120,21 @@ export function BottomNav({ screen, go, openSettings }: Props) {
               fontSize: 14, textAlign: "left", cursor: "pointer", fontFamily: "inherit",
             }}
           >
-            <NavIcon id={it.id} size={17} />
+            <div style={{ position: "relative" }}>
+              <NavIcon id={it.id} size={17} />
+              {it.id === "notifications" && unreadNotifCount > 0 && (
+                <div style={{
+                  position: "absolute", top: -4, right: -6,
+                  minWidth: 14, height: 14, borderRadius: 999,
+                  background: T.accent, color: T.bg,
+                  fontSize: 8, fontWeight: 700,
+                  display: "grid", placeItems: "center",
+                  padding: "0 3px",
+                }}>
+                  {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                </div>
+              )}
+            </div>
             <span>{it.label}</span>
           </button>
         ))}

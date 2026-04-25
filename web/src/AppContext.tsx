@@ -175,6 +175,9 @@ interface AppContextValue {
   playMusic: () => void;
   pauseMusic: () => void;
   toggleMusicMute: () => void;
+  // ── Notifications ──
+  unreadNotifCount: number;
+  clearUnreadNotifCount: () => void;
   // ────────────
   dbLoading: boolean;
   dbError: string | null;
@@ -223,6 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const clearDbError = useCallback(() => setDbError(null), []);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Global brew timer — deps are intentionally granular to avoid restarting the
   // interval on every elapsed tick; setActiveBrewSession is stable.
@@ -306,6 +310,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     void register();
   }, [user, settings.notifications]);
+
+  // Fetch unread notification count on login / logout
+  useEffect(() => {
+    if (!user) { setUnreadNotifCount(0); return; }
+    supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
+      .then(({ count }) => setUnreadNotifCount(count ?? 0));
+  }, [user]);
+
+  // Realtime: increment badge when a new notification arrives for this user
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("notif-badge")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => setUnreadNotifCount((n) => n + 1),
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [user]);
 
   // Load all user data from DB on login
   useEffect(() => {
@@ -534,6 +563,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await supabase.from("beans").delete().eq("id", id);
   }, [user]);
 
+  const clearUnreadNotifCount = useCallback(() => {
+    setUnreadNotifCount(0);
+    if (!user) return;
+    void supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+  }, [user]);
+
   const addGrinder = useCallback(async (data: { name: string; type: "Hand" | "Electric"; micronsPerClick?: number }): Promise<Grinder> => {
     // If user provided microns-per-click, convert. Otherwise fall back to type defaults.
     // Hand default ≈ Comandante C40 (~30 µm/click). Electric default ≈ Baratza Encore (~40 µm/click).
@@ -577,6 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       startBrewSession, toggleBrewPause, clearBrewSession, notifyBrewStep,
       musicPlaying, musicMuted, currentTrack, setCurrentTrack,
       playMusic, pauseMusic, toggleMusicMute,
+      unreadNotifCount, clearUnreadNotifCount,
       dbLoading,
       dbError, clearDbError,
     }}>

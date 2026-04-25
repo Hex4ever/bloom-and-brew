@@ -1,4 +1,4 @@
-import { Home, Coffee, Book, Compass, BookOpen, Users, MapPin, Settings } from "lucide-react";
+import { Home, Coffee, Book, Compass, BookOpen, Users, MapPin, Settings, Bell } from "lucide-react";
 import { T } from "../styles/theme";
 
 // Screens that count as "Brew" for the active indicator
@@ -11,6 +11,7 @@ export type SidebarScreen =
   | "discover"
   | "beans"
   | "feed"
+  | "notifications"
   | "cafes"
   | "glossary"
   | (typeof BREW_SCREENS)[number];
@@ -19,17 +20,19 @@ interface Props {
   screen: SidebarScreen | string;
   go: (screen: SidebarScreen) => void;
   openSettings: () => void;
+  unreadNotifCount?: number;
 }
 
 const items: { id: SidebarScreen; label: string }[] = [
-  { id: "welcome",  label: "Home"           },
-  { id: "methods",  label: "Brew"           },
-  { id: "journal",  label: "Brew Journal"   },
-  { id: "discover", label: "Discover Beans" },
-  { id: "beans",    label: "My Bean Log"    },
-  { id: "feed",     label: "Community"      },
-  { id: "cafes",    label: "Cafes Near Me"  },
-  { id: "glossary", label: "Glossary"       },
+  { id: "welcome",       label: "Home"           },
+  { id: "methods",       label: "Brew"           },
+  { id: "journal",       label: "Brew Journal"   },
+  { id: "discover",      label: "Discover Beans" },
+  { id: "beans",         label: "My Bean Log"    },
+  { id: "feed",          label: "Community"      },
+  { id: "notifications", label: "Notifications"  },
+  { id: "cafes",         label: "Cafes Near Me"  },
+  { id: "glossary",      label: "Glossary"       },
 ];
 
 function NavIcon({ id, size }: { id: SidebarScreen; size: number }) {
@@ -42,12 +45,13 @@ function NavIcon({ id, size }: { id: SidebarScreen; size: number }) {
     case "beans":    return <BookOpen {...props} />;
     case "feed":     return <Users    {...props} />;
     case "cafes":    return <MapPin   {...props} />;
-    case "glossary": return <Book     {...props} />;
-    default:         return null;
+    case "notifications": return <Bell  {...props} />;
+    case "glossary":      return <Book  {...props} />;
+    default:              return null;
   }
 }
 
-export function Sidebar({ screen, go, openSettings }: Props) {
+export function Sidebar({ screen, go, openSettings, unreadNotifCount = 0 }: Props) {
   return (
     <div style={{
       width: 240, height: "100vh", flexShrink: 0, background: T.bg2,
@@ -85,7 +89,21 @@ export function Sidebar({ screen, go, openSettings }: Props) {
                 fontSize: 13, letterSpacing: "0.05em",
               }}
             >
-              <NavIcon id={it.id} size={16} />
+              <div style={{ position: "relative" }}>
+                <NavIcon id={it.id} size={16} />
+                {it.id === "notifications" && unreadNotifCount > 0 && (
+                  <div style={{
+                    position: "absolute", top: -4, right: -6,
+                    minWidth: 14, height: 14, borderRadius: 999,
+                    background: T.accent, color: T.bg,
+                    fontSize: 8, fontWeight: 700,
+                    display: "grid", placeItems: "center",
+                    padding: "0 3px",
+                  }}>
+                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                  </div>
+                )}
+              </div>
               <span>{it.label}</span>
             </button>
           );

@@ -362,6 +362,29 @@ export interface Database {
         Update: { data?: Json; cached_at?: string };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: "like" | "comment";
+          actor_name: string;
+          post_id: string | null;
+          post_caption: string | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          type: "like" | "comment";
+          actor_name: string;
+          post_id?: string | null;
+          post_caption?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: { read?: boolean };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

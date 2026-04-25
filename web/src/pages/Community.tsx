@@ -134,6 +134,13 @@ function CommentsSheet({
 
     // Notify the post owner (skip if commenter is the owner)
     if (post.user_id && post.user_id !== currentUserId) {
+      void supabase.from("notifications").insert({
+        user_id: post.user_id,
+        type: "comment",
+        actor_name: posterName,
+        post_id: post.id,
+        post_caption: post.caption ? post.caption.slice(0, 80) : null,
+      });
       void supabase.functions.invoke("send-push", {
         body: {
           userId: post.user_id,
@@ -691,6 +698,13 @@ export function Community() {
       await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
       // DB trigger on post_likes auto-updates likes_count; Realtime pushes the new value back
       if (post.user_id && post.user_id !== user.id) {
+        void supabase.from("notifications").insert({
+          user_id: post.user_id,
+          type: "like",
+          actor_name: settings.name || "Someone",
+          post_id: postId,
+          post_caption: post.caption ? post.caption.slice(0, 80) : null,
+        });
         void supabase.functions.invoke("send-push", {
           body: {
             userId: post.user_id,

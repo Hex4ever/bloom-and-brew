@@ -13,3 +13,4 @@ export { Community } from "./Community";
 export { SubmitRecipe } from "./SubmitRecipe";
 export { BeanLog } from "./BeanLog";
 export { ScanBean } from "./ScanBean";
+export { Notifications } from "./Notifications";
