@@ -2,13 +2,13 @@
 
 This file is the live log of what has been done, what is next, and how to resume. Read this first when opening the project in a new session.
 
-**Last updated:** 2026-04-24 (session 22 — public landing page for BeyondPours)
+**Last updated:** 2026-04-25 (session 23 — community bug fixes + notifications inbox)
 **Current phase:** Phase 7 — Mobile apps (Capacitor decision point)
 **Plan of record:** `BUILD_PLAN.md`
 **Model rules:** `MODELS.md`
 **Live URL:** https://bloom-and-brew-lemon.vercel.app/
 **GitHub:** https://github.com/Hex4ever/bloom-and-brew
-**Head of `main`:** chore: trigger Vercel redeploy (`d671215`)
+**Head of `main`:** refactor(sidebar): move bell to right of Settings (`1c7fb8a`)
 
 ---
 
@@ -289,6 +289,68 @@ Working tree is clean. Everything committed.
 ---
 
 ## Sessions log
+
+### Session 23 (2026-04-25) — Community bug fixes + Notifications inbox
+
+#### Fix 1 — Community: real-time likes & comment counts from other users
+
+**Root cause:** Posts were fetched once on mount with no Realtime subscription, so another user's like or comment was invisible until page reload. Count writes (`likes_count + 1`, `comments_count + 1`) used a stale client-side snapshot, causing race conditions when two users interacted simultaneously.
+
+**Migration `007_live_counts.sql`** (applied):
+- DB trigger `trg_post_likes_count` on `post_likes` INSERT/DELETE → atomically maintains `community_posts.likes_count` (no client-side race)
+- `increment_comments_count(p_post_id uuid)` RPC → atomic server-side increment used by comment submit
+- `ALTER TABLE community_posts REPLICA IDENTITY FULL` + added to `supabase_realtime` publication
+
+**`Community.tsx` changes:**
+- Removed manual `likes_count` UPDATE calls from `toggleLike` (trigger handles it)
+- Replaced stale `comments_count + 1` write with `supabase.rpc("increment_comments_count")`
+- Added Supabase Realtime subscription (postgres_changes UPDATE on `community_posts`) — patches `likes_count` and `comments_count` in local state whenever any user's action updates a post
+- `CommentsSheet` now calls `onCountSync(postId, actualCount)` after loading comments, so the feed card self-heals if the stored count is stale
+- On load, derives `likes_count` from actual `post_likes` rows (one query fetches all likes for visible posts, counts per post, also derives `likedByMe`) — replaces the stale stored column entirely
+
+**SQL run to fix historical stale data:**
+```sql
+UPDATE community_posts SET likes_count   = (SELECT COUNT(*) FROM post_likes    WHERE post_id = community_posts.id);
+UPDATE community_posts SET comments_count = (SELECT COUNT(*) FROM post_comments WHERE post_id = community_posts.id);
+```
+
+#### Fix 2 — Desktop sidebar layout: fixed height, independently scrollable content
+
+The sidebar used `position: sticky` + `minHeight: 100vh`. In a flex row, siblings stretch to the tallest child — so on long pages (Community, Glossary) the sidebar grew with the content, pushing the Settings button way down.
+
+- **`App.tsx`** outer desktop wrapper: `minHeight → height: 100vh` + `overflow: hidden`; content column: `minHeight → height: 100vh` + `overflowY: auto`
+- **`Sidebar.tsx`**: `position: sticky; minHeight: 100vh → height: 100vh; flexShrink: 0` — sidebar is now always exactly viewport height regardless of page content length; Settings button always visible
+
+#### Feature — Notifications inbox (`/notifications`)
+
+Persistent in-app notification history for social interactions (likes + comments).
+
+**Migration `008_notifications.sql`** (applied):
+- `notifications(id, user_id, type, actor_name, post_id, post_caption, read, created_at)` — `type` is `'like' | 'comment'`
+- RLS: recipient SELECT/UPDATE own rows; any authenticated user can INSERT (to notify post owners)
+- Realtime enabled for live badge updates
+
+**`AppContext.tsx`:**
+- `unreadNotifCount` state — fetched on login via `SELECT COUNT(*) WHERE read = false`
+- Realtime INSERT subscription filtered to `user_id=eq.{user.id}` — increments badge live
+- `clearUnreadNotifCount()` — resets count to 0 and marks all rows `read = true` in DB
+
+**`Community.tsx`:**
+- `toggleLike`: inserts a `type: 'like'` notification for the post owner on like (skips self-likes)
+- `CommentsSheet.submit`: inserts a `type: 'comment'` notification for the post owner (skips self-comments)
+
+**`Notifications.tsx`** (new page at `/notifications`):
+- Fetches last 30 notifications for the current user, grouped by Today / Yesterday / date
+- ❤️ amber icon for likes, 💬 teal for comments; unread amber dot on each new item; 65% opacity once read
+- Marks all as read + clears badge on mount
+- Empty state with bell icon and descriptive message
+
+**Nav wiring:**
+- `Sidebar.tsx`: bottom row has ⚙ Settings (full-width, original style) + 🔔 bell icon button pinned to the right — highlights on `/notifications`, shows amber badge (capped "9+") when unread
+- `BottomNav.tsx`: Notifications added to More drawer with same badge
+- `App.tsx`: `/notifications` route + `notifications: "/notifications"` screen mapping
+
+---
 
 ### Session 22 (2026-04-24) — Public landing page for BeyondPours
 

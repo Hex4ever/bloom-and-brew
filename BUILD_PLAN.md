@@ -217,6 +217,28 @@ Marketing landing page for first-time visitors; the app's sign-in screen is no l
 4. ✅ **Visual polish** — warm radial gradient background; amber glow behind mockups; frosted-glass CTA buttons; device frames with glass-edge `inset` highlight + drop-shadow; feature pills (9 brew methods · AI recipe tuning · Cafe finder · Community)
 5. ✅ **Mockup accuracy** — device frames render the actual `DesktopAppContent` and `MobileAppContent` components (sidebar, greeting, New brew button, DashCards, WeekStats, Tip, Fact) — not a static screenshot
 
+### 6d — Community reliability + Notifications inbox ✅ COMPLETE (2026-04-25)
+
+#### Community count reliability
+
+1. ✅ **Migration `007_live_counts.sql`** — DB trigger on `post_likes` atomically maintains `likes_count`; `increment_comments_count()` RPC for atomic comment counts; Realtime enabled on `community_posts`
+2. ✅ **Realtime sync** — `Community.tsx` subscribes to `postgres_changes UPDATE` on `community_posts`; all connected clients see likes/comments from other users without a page reload
+3. ✅ **Atomic writes** — `toggleLike` no longer issues a manual `likes_count` UPDATE (trigger handles it); `CommentsSheet.submit` uses `rpc("increment_comments_count")` instead of stale read-then-write
+4. ✅ **Self-healing counts** — `CommentsSheet` calls `onCountSync(postId, actualCount)` on load to correct any stale `comments_count` displayed in the feed
+5. ✅ **True likes count on load** — posts fetch derives `likes_count` by counting actual `post_likes` rows (not the stale stored column); also resolves `likedByMe` in the same query
+
+#### Desktop sidebar layout fix
+
+6. ✅ **Fixed sidebar height** — outer shell `height: 100vh + overflow: hidden`; content column `height: 100vh + overflow-y: auto`; sidebar `height: 100vh + flex-shrink: 0` — sidebar never grows with page content; Settings button always visible
+
+#### Notifications inbox
+
+7. ✅ **Migration `008_notifications.sql`** — `notifications` table (`type: like|comment`, `actor_name`, `post_id`, `post_caption`, `read`); RLS lets recipient read/update own rows, any authenticated user can insert; Realtime enabled
+8. ✅ **Notification writes** — like on another user's post inserts a `like` notification; comment on another user's post inserts a `comment` notification (both skip self-interactions)
+9. ✅ **`AppContext`** — `unreadNotifCount` fetched on login; Realtime INSERT subscription increments badge live; `clearUnreadNotifCount()` marks all read in DB + resets local count
+10. ✅ **`Notifications.tsx`** — `/notifications` page; last 30 events grouped Today/Yesterday/date; ❤️/💬 icons; unread amber dot; marks all read + clears badge on mount; empty state
+11. ✅ **Nav** — Sidebar bottom row: ⚙ Settings + 🔔 bell icon (right-aligned, highlights on active, amber badge capped "9+"); BottomNav More drawer: Notifications entry with same badge
+
 ---
 
 ## Phase 7 — Mobile apps (weeks 9-11)
