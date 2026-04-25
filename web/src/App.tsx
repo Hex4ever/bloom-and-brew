@@ -79,10 +79,10 @@ function Layout() {
       <div style={{
         fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
         background: "#0a0807", color: "#ebe0c8",
-        minHeight: "100vh", display: "flex", letterSpacing: "0.01em",
+        height: "100vh", overflow: "hidden", display: "flex", letterSpacing: "0.01em",
       }}>
         <Sidebar screen={currentScreen} go={go} openSettings={() => setSettingsOpen(true)} />
-        <div style={{ flex: 1, minHeight: "100vh", display: "flex", justifyContent: "center" }}>
+        <div style={{ flex: 1, height: "100vh", overflowY: "auto", display: "flex", justifyContent: "center" }}>
           <div style={{ width: "100%", maxWidth: 1100, position: "relative" }}>
             <div className="fade-up" key={location.pathname}>
               <Outlet />

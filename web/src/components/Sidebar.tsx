@@ -50,9 +50,9 @@ function NavIcon({ id, size }: { id: SidebarScreen; size: number }) {
 export function Sidebar({ screen, go, openSettings }: Props) {
   return (
     <div style={{
-      width: 240, minHeight: "100vh", background: T.bg2,
+      width: 240, height: "100vh", flexShrink: 0, background: T.bg2,
       borderRight: `1px solid ${T.line}`, padding: "30px 18px",
-      display: "flex", flexDirection: "column", position: "sticky", top: 0,
+      display: "flex", flexDirection: "column",
     }}>
       {/* Logo */}
       <div style={{ padding: "0 12px 36px" }}>
