@@ -218,8 +218,7 @@ Recommended: **Option A (Capacitor)** — the app is already responsive and the 
 5. App icons, splash screens
 6. TestFlight (iOS) + Google Play Internal Testing (Android)
 
-**Pending manual step still outstanding:**
-- Run `supabase/migrations/003_default_grinder.sql` if not yet applied — adds `default_grinder_id` to `profiles`
+**All manual migration steps complete** ✅ — `003_default_grinder.sql` applied.
 
 ---
 

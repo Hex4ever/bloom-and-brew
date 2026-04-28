@@ -1,5 +1,6 @@
 import { Home, Coffee, Book, Compass, BookOpen, Users, MapPin, Settings, Bell } from "lucide-react";
 import { T } from "../styles/theme";
+import { LogoMark } from "./LogoMark";
 
 // Screens that count as "Brew" for the active indicator
 const BREW_SCREENS = ["setup", "methods", "recipes", "brew"] as const;
@@ -60,10 +61,7 @@ export function Sidebar({ screen, go, openSettings, unreadNotifCount = 0 }: Prop
       {/* Logo */}
       <div style={{ padding: "0 12px 36px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <div style={{
-            width: 28, height: 28, background: T.cream, borderRadius: 8,
-            display: "grid", placeItems: "center", color: T.bg, fontSize: 14, fontWeight: 600,
-          }}>✿</div>
+          <LogoMark size={28} />
           <div style={{ fontSize: 14, letterSpacing: "0.05em", color: T.cream, fontWeight: 300 }}>
             BeyondPours
           </div>

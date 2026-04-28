@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { T, FONT } from "../styles/theme";
+import { LogoMark } from "../components/LogoMark";
 
 const SIDEBAR_ITEMS = [
   { icon: Home,     label: "Home",          active: true },
@@ -36,10 +37,7 @@ function DesktopAppContent() {
       }}>
         <div style={{ padding: "0 12px 36px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 28, height: 28, background: T.cream, borderRadius: 8,
-              display: "grid", placeItems: "center", color: T.bg, fontSize: 14, fontWeight: 600,
-            }}>✿</div>
+            <LogoMark size={28} />
             <span style={{ fontSize: 14, letterSpacing: "0.05em", color: T.cream, fontWeight: 300 }}>BeyondPours</span>
           </div>
         </div>
@@ -66,7 +64,7 @@ function DesktopAppContent() {
       {/* Main */}
       <div style={{ flex: 1, padding: "40px 52px", minWidth: 0, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }}>
-          <div style={{ width: 24, height: 24, background: T.cream, borderRadius: 7, display: "grid", placeItems: "center", color: T.bg, fontSize: 12 }}>✿</div>
+          <LogoMark size={24} />
           <span style={{ fontSize: 12, letterSpacing: "0.2em", color: T.creamDim }}>BEYONDPOURS</span>
         </div>
         <div style={{ marginBottom: 32 }}>
@@ -152,7 +150,7 @@ function MobileAppContent() {
     <div style={{ fontFamily: FONT, color: T.cream, background: T.bg, height: "100%", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "56px 26px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 22, height: 22, background: T.cream, borderRadius: 6, display: "grid", placeItems: "center", color: T.bg, fontSize: 10 }}>✿</div>
+          <LogoMark size={22} />
           <span style={{ fontSize: 10, letterSpacing: "0.2em", color: T.creamDim }}>BEYONDPOURS</span>
         </div>
         <Settings size={16} color={T.cream} strokeWidth={1.5} />
@@ -314,11 +312,7 @@ export function Landing() {
         position: "relative", zIndex: 10,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{
-            width: 26, height: 26, background: T.bg3, border: `1px solid ${T.line}`,
-            borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13,
-          }}>✿</div>
+          <LogoMark size={26} bg={T.bg3} color={T.cream} border={`1px solid ${T.line}`} />
           <span style={{ fontSize: 11, letterSpacing: "0.2em", color: T.accent, textTransform: "uppercase" }}>BeyondPours</span>
         </div>
         <Link to="/signin" style={{
